@@ -21,65 +21,35 @@ async function cachedFetch(key, fetchFn) {
   return data;
 }
 
+function backgroundFetch(url) {
+  return new Promise(resolve => {
+    chrome.runtime.sendMessage({ type: "fetch", url }, resolve);
+  });
+}
+
 async function resolveVanity(vanity) {
   return cachedFetch(`steamid:${vanity}`, async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/resolveVanity/${vanity}`);
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        return { error: body?.error || `Error ${response.status}`, status: response.status };
-      }
-      const data = await response.json();
-      return data["steam_id"];
-    } catch {
-      return null;
-    }
+    const data = await backgroundFetch(`${API_URL}/api/resolveVanity/${vanity}`);
+    return data?.["steam_id"] ?? null;
   });
 }
 
 async function fetchFaceitProfile(steamId64) {
-  return cachedFetch(`faceit:${steamId64}`, async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/stats/faceit/${steamId64}`);
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        return { error: body?.error || `Error ${response.status}`, status: response.status };
-      }
-      return response.json();
-    } catch {
-      return null;
-    }
-  });
+  return cachedFetch(`faceit:${steamId64}`, () =>
+    backgroundFetch(`${API_URL}/api/stats/faceit/${steamId64}`)
+  );
 }
 
 async function fetchLeetifyProfile(steamId64) {
-  return cachedFetch(`leetify:${steamId64}`, async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/stats/leetify/${steamId64}`);
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        return { error: body?.error || `Error ${response.status}`, status: response.status };
-      }
-      return response.json();
-    } catch {
-      return null;
-    }
-  });
+  return cachedFetch(`leetify:${steamId64}`, () =>
+    backgroundFetch(`${API_URL}/api/stats/leetify/${steamId64}`)
+  );
 }
 
 async function fetchSteamProfile(steamId64) {
-  return cachedFetch(`steam:${steamId64}`, async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/stats/steam/${steamId64}`);
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        return { error: body?.error || `Error ${response.status}`, status: response.status };
-      }
-      return response.json();
-    } catch {
-      return null;
-    }
-  });
+  return cachedFetch(`steam:${steamId64}`, () =>
+    backgroundFetch(`${API_URL}/api/stats/steam/${steamId64}`)
+  );
 }
 
 function howLongAgo(dateStr) {

@@ -24,5 +24,9 @@
       "matches": ["https://steamcommunity.com/*"]
     }
   ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
   "permissions": ["storage"]
 }
