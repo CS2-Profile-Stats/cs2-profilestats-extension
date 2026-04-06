@@ -199,7 +199,7 @@ function createTemplate(images) {
 
 function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   if (!steamData || steamData.error) {
-    clone.querySelector("#profilestats-steam_content").textContent = steamData?.error ?? "Couldn't load Steam data";
+    clone.querySelector("#profilestats-steam_content").textContent = "Couldn't load Steam data";
     return;
   }
 
@@ -226,7 +226,7 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
 
 function fillLeetify(clone, leetifyData, steamId64) {
   if (!leetifyData || leetifyData.error) {
-    clone.querySelector("#profilestats-leetify_content").textContent = leetifyData?.error ?? "Couldn't load Leetify data";
+    clone.querySelector("#profilestats-leetify_content").textContent = "Couldn't load Leetify data"
     return 0;
   }
 
