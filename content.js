@@ -259,7 +259,7 @@ function fillFaceit(clone, faceitData) {
   const stats = faceitData["stats"];
   const faceitLevel = faceitData["level"];
   const ranking = faceitData["ranking"];
-  const displayLevel = ranking <= 1000 ? `#${ranking}` : faceitLevel;
+  const displayLevel = ranking <= 1000 && ranking !== 0 ? `#${ranking}` : faceitLevel;
 
   clone.querySelector("#profilestats-faceit_category_logo_name").href = `https://www.faceit.com/en/players/${faceitData["nickname"]}`;
   clone.querySelector("#profilestats-faceit_level").textContent = displayLevel;
