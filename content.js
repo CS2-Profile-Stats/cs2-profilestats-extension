@@ -323,8 +323,8 @@ function fillCSStats(clone, csStatsData, steamId64) {
   const winRate = stats["win_rate"]
   clone.querySelector("#profilestats-csstats_win_rate").textContent = `${winRate ? winRate + "%" : "-"}`
 
-  const hsPercentage = stats["hs_percentage"]
-  clone.querySelector("#profilestats-csstats_hs_percentage").textContent = `${hsPercentage ? hsPercentage : "-"}`
+  const hs = stats["hs_percentage"]
+  clone.querySelector("#profilestats-csstats_hs_percentage").textContent = hs != null ? `${hs}%` : "-"
 
   clone.querySelector("#profilestats-csstats_adr").textContent = stats["adr"] ?? "-"
 
@@ -470,10 +470,10 @@ async function renderStats(el, head) {
   if (!status || status.error) return;
 
   const images = {
-    steamLogo:   chrome.runtime.getURL("assets/steam_logo.png"),
+    steamLogo: chrome.runtime.getURL("assets/steam_logo.png"),
     leetifyLogo: chrome.runtime.getURL("assets/leetify_logo.png"),
     leetifyBadge: chrome.runtime.getURL("assets/leetify_badge.png"),
-    faceitLogo:  chrome.runtime.getURL("assets/faceit_logo.png"),
+    faceitLogo: chrome.runtime.getURL("assets/faceit_logo.png"),
   };
 
   const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null;
