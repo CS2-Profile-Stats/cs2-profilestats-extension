@@ -330,33 +330,30 @@ function fillFaceit(clone, faceitData) {
 function createStyles(premierRating, faceitLevel) {
   const premierColor = getPremierColor(premierRating);
   const faceitColor = getFaceitColor(faceitLevel);
-
   return `
-    <style>
-      .profilestats-customization_header { display: flex; flex-direction: row; justify-content: space-between; }
-      .profilestats-customization_header > button { color: white; background: rgba(0,0,0,0.3); border: none; border-radius: 3px; height: 30px; width: 30px }
-      .profilestats-category_name { color: white; font-size: 23px; font-weight: 600; }
-      .profilestats-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-bottom: 5px; min-height: 40px }
-      .profilestats-category_logo_name { display: flex; flex-direction: row; justify-content: start; align-items: center; gap: 10px; }
-      .profilestats-category_logo_name:hover { filter: brightness(0.8) }
-      .profilestats-category_logo_name > img { height: 27px; }
-      .profilestats-header > img { height: 40px; }
-      .profilestats-details { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-      .profilestats-details > div { color: white; font-size: 17px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,0.3); border-radius: 3px; padding: 5px; height: fit-content; }
-      .profilestats-details > div > span { color: #c4c4c4;font-size: 15px; }
-      #profilestats-steam_profile > div { color: white; font-size: 17px }
-      #profilestats-steam_profile > div > span { color: #c4c4c4; font-size: 15px }
-      #profilestats-leetify_profile_header { display: flex; flex-direction: row; gap: 10px }
-      #profilestats-leetify_name { color: white; font-size: 20px; }
-      #profilestats-leetify_premier_rating { color: ${premierColor}; font-size: 20px; font-weight: 600; }
-      .profilestats-details { margin-top: 10px; }
-      #profilestats-faceit_profile_header { display: flex; flex-direction: row; align-items: center; gap: 5px }
-      #profilestats-faceit_level { color: ${faceitColor}; font-weight: bold; font-size: 15px; border: 2px solid ${faceitColor}; border-radius: 50%; min-height: 30px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center }
-      #profilestats-faceit_nickname { color: white; font-size: 20px; }
-      #profilestats-faceit_elo { color: ${faceitColor}; }
-      #profilestats-faceit_recent_results { display: flex; gap: 3px; justify-content: center; }
-      .profilestats-settings { display: flex; flex-direction: row; align-items: center; justify-content: end; }
-    </style>
+    .profilestats-customization_header { display: flex; flex-direction: row; justify-content: space-between; }
+    .profilestats-customization_header > button { color: white; background: rgba(0,0,0,0.3); border: none; border-radius: 3px; height: 30px; width: 30px }
+    .profilestats-category_name { color: white; font-size: 23px; font-weight: 600; }
+    .profilestats-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-bottom: 5px; min-height: 40px }
+    .profilestats-category_logo_name { display: flex; flex-direction: row; justify-content: start; align-items: center; gap: 10px; }
+    .profilestats-category_logo_name:hover { filter: brightness(0.8) }
+    .profilestats-category_logo_name > img { height: 27px; }
+    .profilestats-header > img { height: 40px; }
+    .profilestats-details { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .profilestats-details > div { color: white; font-size: 17px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,0.3); border-radius: 3px; padding: 5px; height: fit-content; }
+    .profilestats-details > div > span { color: #c4c4c4;font-size: 15px; }
+    #profilestats-steam_profile > div { color: white; font-size: 17px }
+    #profilestats-steam_profile > div > span { color: #c4c4c4; font-size: 15px }
+    #profilestats-leetify_profile_header { display: flex; flex-direction: row; gap: 10px }
+    #profilestats-leetify_name { color: white; font-size: 20px; }
+    #profilestats-leetify_premier_rating { color: ${premierColor}; font-size: 20px; font-weight: 600; }
+    .profilestats-details { margin-top: 10px; }
+    #profilestats-faceit_profile_header { display: flex; flex-direction: row; align-items: center; gap: 5px }
+    #profilestats-faceit_level { color: ${faceitColor}; font-weight: bold; font-size: 15px; border: 2px solid ${faceitColor}; border-radius: 50%; min-height: 30px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center }
+    #profilestats-faceit_nickname { color: white; font-size: 20px; }
+    #profilestats-faceit_elo { color: ${faceitColor}; }
+    #profilestats-faceit_recent_results { display: flex; gap: 3px; justify-content: center; }
+    .profilestats-settings { display: flex; flex-direction: row; align-items: center; justify-content: end; }
   `;
 }
 
@@ -390,8 +387,6 @@ async function setupSettings(el) {
 
 async function renderStats(el, head) {
   if (!el) return;
-
-
   const path = window.location.pathname;
   const profilePage = path.match(/^\/(profiles|id)\/[^\/]+\/?$/);
   if (!profilePage) return;
@@ -399,20 +394,15 @@ async function renderStats(el, head) {
   const steamId64 = await getSteamId(window.location.href);
   if (!steamId64) return;
 
-  console.log(steamId64)
-
+  // we do fetching twice because we want the whole thing to not show up if the api is down
+  // caching would prevent us from fetching twice anyway, this just acts as a guard or whatever
+  // idk any other solution for that rn, maybe need a status endpoint for the api
   const [faceitData, leetifyData, steamData] = await Promise.all([
     fetchFaceitProfile(steamId64),
     fetchLeetifyProfile(steamId64),
     fetchSteamProfile(steamId64)
   ]);
-
-  // is api down
   if (!faceitData && !leetifyData && !steamData) return;
-
-  console.log(faceitData);
-  console.log(leetifyData);
-  console.log(steamData);
 
   const images = {
     steamLogo:   chrome.runtime.getURL("assets/steam_logo.png"),
@@ -421,17 +411,56 @@ async function renderStats(el, head) {
     faceitLogo:  chrome.runtime.getURL("assets/faceit_logo.png"),
   };
 
-  const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null
+  const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null;
   const clone = createTemplate(images);
 
-  fillSteam(clone, steamData, steamId64, isGamesPrivate);
-  const premierRating = fillLeetify(clone, leetifyData, steamId64);
-  const faceitLevel = fillFaceit(clone, faceitData);
+  const steamBackup = clone.querySelector("#profilestats-steam_content").innerHTML;
+  const leetifyBackup = clone.querySelector("#profilestats-leetify_content").innerHTML;
+  const faceitBackup = clone.querySelector("#profilestats-faceit_content").innerHTML;
 
-  head.insertAdjacentHTML("beforeend", createStyles(premierRating, faceitLevel));
+  const loadingAnimation = `
+    <div id="profilestats-loading" style="display: flex; align-items: center">
+      <svg style="color: white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z">
+          <animateTransform attributeName="transform" dur="0.75s" repeatCount="indefinite" type="rotate" values="0 12 12;360 12 12"/>
+        </path>
+      </svg>
+    </div>
+  `
+
+  clone.querySelector("#profilestats-steam_content").innerHTML = loadingAnimation;
+  clone.querySelector("#profilestats-leetify_content").innerHTML = loadingAnimation;
+  clone.querySelector("#profilestats-faceit_content").innerHTML = loadingAnimation;
+
+  const styleEl = document.createElement("style");
+  styleEl.textContent = createStyles(0, 0);
+  head.appendChild(styleEl);
+
   el.prepend(clone);
-
   await setupSettings(el);
+
+  let premierRating = 0;
+  let faceitLevel = 0;
+
+  fetchSteamProfile(steamId64).then(steamData => {
+    const content = el.querySelector("#profilestats-steam_content");
+    content.innerHTML = steamBackup;
+    fillSteam(el, steamData, steamId64, isGamesPrivate);
+  });
+
+  fetchLeetifyProfile(steamId64).then(leetifyData => {
+    const content = el.querySelector("#profilestats-leetify_content");
+    content.innerHTML = leetifyBackup;
+    premierRating = fillLeetify(el, leetifyData, steamId64);
+    styleEl.textContent = createStyles(premierRating, faceitLevel);
+  });
+
+  fetchFaceitProfile(steamId64).then(faceitData => {
+    const content = el.querySelector("#profilestats-faceit_content");
+    content.innerHTML = faceitBackup;
+    faceitLevel = fillFaceit(el, faceitData);
+    styleEl.textContent = createStyles(premierRating, faceitLevel);
+  });
 }
 
 renderStats(
