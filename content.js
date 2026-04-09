@@ -198,7 +198,7 @@ function createTemplate(images) {
           <div id="profilestats-faceit_content">
             <div id="profilestats-faceit_profile">
               <div id="profilestats-faceit_profile_header">
-                <span id="profilestats-faceit_level"></span>
+                <img id="profilestats-faceit_level"/>
                 <img id="profilestats-faceit_flag"/>
                 <span id="profilestats-faceit_nickname"></span>
                 <span style="font-size: 17px; font-weight: bold"> | </span>
@@ -336,7 +336,15 @@ function fillCSStats(clone, csStatsData, steamId64) {
   return premierRating ?? 0;
 }
 
-function fillFaceit(clone, faceitData) {
+function getFaceitLevelImage(faceitLevels, level, ranking) {
+  if (ranking >= 1000 || ranking == 0) {
+    return faceitLevels[level]
+  } else {
+    return faceitLevels["challenger"]
+  }
+}
+
+function fillFaceit(clone, faceitData, faceitLevels) {
   if (!faceitData || faceitData.error) {
     clone.querySelector("#profilestats-faceit_content").textContent = faceitData?.status === 404 ? "No FaceIt profile" : (faceitData?.error ?? "Couldn't load FaceIt data");
     return 0;
@@ -345,11 +353,13 @@ function fillFaceit(clone, faceitData) {
   const stats = faceitData["stats"];
   const faceitLevel = faceitData["level"];
   const ranking = faceitData["ranking"];
-  const displayLevel = ranking != null && ranking <= 1000 && ranking !== 0 ? `#${ranking}` : (faceitLevel ?? "?");
 
   const nickname = faceitData["nickname"];
   clone.querySelector("#profilestats-faceit_category_logo_name").href = `https://www.faceit.com/en/players/${nickname ?? "-"}`;
-  clone.querySelector("#profilestats-faceit_level").textContent = displayLevel;
+  clone.querySelector("#profilestats-faceit_level").src = ranking != null && faceitLevel != null ? getFaceitLevelImage(faceitLevels, faceitLevel, ranking) : "";
+  if (ranking != null && ranking != 0) {
+    clone.querySelector("#profilestats-faceit_level").title = `#${ranking}`
+  }
   clone.querySelector("#profilestats-faceit_nickname").textContent = faceitData["nickname"] ?? "-";
 
   const country = faceitData["country"];
@@ -421,7 +431,7 @@ function createStyles(leetifyPremierRating, csStatsPremierRating, faceitLevel) {
     #profilestats-csstats_premier_rating { color: ${csStatsPremierColor}; font-size: 20px; font-weight: 600; }
     .profilestats-details { margin-top: 10px; }
     #profilestats-faceit_profile_header { display: flex; flex-direction: row; align-items: center; gap: 5px }
-    #profilestats-faceit_level { color: ${faceitColor}; font-weight: bold; font-size: 15px; border: 2px solid ${faceitColor}; border-radius: 50%; min-height: 30px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center }
+    #profilestats-faceit_level { color: ${faceitColor}; border-radius: 50%; filter: drop-shadow(${faceitColor}60 0px 0px 5px); }
     #profilestats-faceit_nickname { color: white; font-size: 20px; }
     #profilestats-faceit_elo { color: ${faceitColor}; }
     #profilestats-faceit_recent_results { display: flex; gap: 3px; justify-content: center; }
@@ -475,6 +485,20 @@ async function renderStats(el, head) {
     leetifyBadge: chrome.runtime.getURL("assets/leetify_badge.png"),
     faceitLogo: chrome.runtime.getURL("assets/faceit_logo.png"),
   };
+
+  const faceitLevels = {
+    1: chrome.runtime.getURL("assets/faceit_levels/1.png"),
+    2: chrome.runtime.getURL("assets/faceit_levels/2.png"),
+    3: chrome.runtime.getURL("assets/faceit_levels/3.png"),
+    4: chrome.runtime.getURL("assets/faceit_levels/4.png"),
+    5: chrome.runtime.getURL("assets/faceit_levels/5.png"),
+    6: chrome.runtime.getURL("assets/faceit_levels/6.png"),
+    7: chrome.runtime.getURL("assets/faceit_levels/7.png"),
+    8: chrome.runtime.getURL("assets/faceit_levels/8.png"),
+    9: chrome.runtime.getURL("assets/faceit_levels/9.png"),
+    10: chrome.runtime.getURL("assets/faceit_levels/10.png"),
+    challenger: chrome.runtime.getURL("assets/faceit_levels/challenger.png"),
+  }
 
   const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null;
   const clone = createTemplate(images);
@@ -533,7 +557,7 @@ async function renderStats(el, head) {
   fetchFaceitProfile(steamId64).then(faceitData => {
     const content = el.querySelector("#profilestats-faceit_content");
     content.innerHTML = faceitBackup;
-    faceitLevel = fillFaceit(el, faceitData);
+    faceitLevel = fillFaceit(el, faceitData, faceitLevels);
     styleEl.textContent = createStyles(leetifyPremierRating, csStatsPremierRating, faceitLevel);
   });
 }
