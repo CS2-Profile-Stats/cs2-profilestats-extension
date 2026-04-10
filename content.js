@@ -287,8 +287,6 @@ function fillLeetify(clone, leetifyData, steamId64, premierBgs) {
   const formattedRating = new Intl.NumberFormat("en-US").format(premierRating);
   const premierBg = getPremierBg(premierBgs, premierRating)
 
-  console.log(premierBg)
-
   clone.querySelector("#profilestats-leetify_category_logo_name").href = `https://leetify.com/app/profile/${steamId64}`;
   clone.querySelector("#profilestats-leetify_name").textContent = `${leetifyData["name"] ?? "-"}`;
   clone.querySelector("#profilestats-leetify_premier_bg").src = premierBg
