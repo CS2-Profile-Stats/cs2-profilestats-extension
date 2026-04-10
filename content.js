@@ -84,6 +84,16 @@ function getPremierColor(rating) {
   return "#c4cce2";
 }
 
+function getPremierBg(bgs, rating) {
+  if (rating < 5000) return bgs["grey"];
+  if (rating < 10000) return bgs["lightblue"];
+  if (rating < 15000) return bgs["blue"];
+  if (rating < 20000) return bgs["purple"];
+  if (rating < 25000) return bgs["pink"];
+  if (rating < 30000) return bgs["red"];
+  return bgs["gold"];
+}
+
 function getFaceitColor(level) {
   if (level === 1) return "#dddddd";
   if (level === 2 || level === 3) return "#47e66e";
@@ -91,6 +101,14 @@ function getFaceitColor(level) {
   if (level === 8 || level === 9) return "#fd6c1e";
   if (level === 10) return "#e80026";
   return "#dddddd";
+}
+
+function getFaceitLevelImage(faceitLevels, level, ranking) {
+  if (ranking >= 1000 || ranking == 0) {
+    return faceitLevels[level]
+  } else {
+    return faceitLevels["challenger"]
+  }
 }
 
 async function getSteamId(url) {
@@ -258,16 +276,6 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   }
 }
 
-function getPremierBg(bgs, rating) {
-  if (rating < 5000) return bgs["grey"];
-  if (rating < 10000) return bgs["lightblue"];
-  if (rating < 15000) return bgs["blue"];
-  if (rating < 20000) return bgs["purple"];
-  if (rating < 25000) return bgs["pink"];
-  if (rating < 30000) return bgs["red"];
-  return bgs["gold"];
-}
-
 function fillLeetify(clone, leetifyData, steamId64, premierBgs) {
   if (!leetifyData || leetifyData.error) {
     clone.querySelector("#profilestats-leetify_content").textContent = "Couldn't load Leetify data"
@@ -351,14 +359,6 @@ function fillCSStats(clone, csStatsData, steamId64) {
   clone.querySelector("#profilestats-csstats_most_played").textContent = stats["most_played_map"] ?? "-"
 
   return premierRating ?? 0;
-}
-
-function getFaceitLevelImage(faceitLevels, level, ranking) {
-  if (ranking >= 1000 || ranking == 0) {
-    return faceitLevels[level]
-  } else {
-    return faceitLevels["challenger"]
-  }
 }
 
 function fillFaceit(clone, faceitData, faceitLevels) {
