@@ -74,13 +74,13 @@ function howLongAgo(dateStr) {
 }
 
 function getPremierColor(rating) {
-  if (rating < 5000)  return "#c4cce2";
-  if (rating < 10000) return "#85b9eb";
-  if (rating < 15000) return "#4c64fe";
-  if (rating < 20000) return "#bf62f9";
-  if (rating < 25000) return "#ee05fb";
-  if (rating < 30000) return "#fe292d";
-  if (rating >= 30000) return "#fbde08";
+  if (rating < 5000)  return "#b0c3d9";
+  if (rating < 10000) return "#8cc6ff";
+  if (rating < 15000) return "#6a7dff";
+  if (rating < 20000) return "#c166ff";
+  if (rating < 25000) return "#f03cff";
+  if (rating < 30000) return "#eb4b4b";
+  if (rating >= 30000) return "#ffd700";
   return "#c4cce2";
 }
 
@@ -144,7 +144,10 @@ function createTemplate(images) {
           <div id="profilestats-leetify_content">
             <div id="profilestats-leetify_profile">
               <div id="profilestats-leetify_profile_header">
-                <span id="profilestats-leetify_premier_rating"></span>
+                <div class="profilestats-premier-rating">
+                  <img id="profilestats-leetify_premier_bg"/>
+                  <span id="profilestats-leetify_premier_rating"></span>
+                </div>
                 <div><span id="profilestats-leetify_name"></span></div>
               </div>
             </div>
@@ -255,7 +258,17 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   }
 }
 
-function fillLeetify(clone, leetifyData, steamId64) {
+function getPremierBg(bgs, rating) {
+  if (rating < 5000) return bgs["grey"];
+  if (rating < 10000) return bgs["lightblue"];
+  if (rating < 15000) return bgs["blue"];
+  if (rating < 20000) return bgs["purple"];
+  if (rating < 25000) return bgs["pink"];
+  if (rating < 30000) return bgs["red"];
+  return bgs["gold"];
+}
+
+function fillLeetify(clone, leetifyData, steamId64, premierBgs) {
   if (!leetifyData || leetifyData.error) {
     clone.querySelector("#profilestats-leetify_content").textContent = "Couldn't load Leetify data"
     return 0;
@@ -264,10 +277,14 @@ function fillLeetify(clone, leetifyData, steamId64) {
   const stats = leetifyData["stats"];
   const premierRating = stats["premier_rating"];
   const formattedRating = new Intl.NumberFormat("en-US").format(premierRating);
+  const premierBg = getPremierBg(premierBgs, premierRating)
+
+  console.log(premierBg)
 
   clone.querySelector("#profilestats-leetify_category_logo_name").href = `https://leetify.com/app/profile/${steamId64}`;
   clone.querySelector("#profilestats-leetify_name").textContent = `${leetifyData["name"] ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_premier_rating").textContent = `[${premierRating == null || premierRating === 0 ? "---" : formattedRating}]`
+  clone.querySelector("#profilestats-leetify_premier_bg").src = premierBg
+  clone.querySelector("#profilestats-leetify_premier_rating").textContent = `${premierRating == null || premierRating === 0 ? "---" : formattedRating}`
   clone.querySelector("#profilestats-leetify_leetify_rating").textContent = `${stats["leetify_rating"] ?? "-"}`;
   clone.querySelector("#profilestats-leetify_matches").textContent = `${stats["matches"] ?? "-"}`;
 
@@ -420,11 +437,13 @@ function createStyles(leetifyPremierRating, csStatsPremierRating, faceitLevel) {
     .profilestats-details { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .profilestats-details > div { color: white; font-size: 17px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,0.3); border-radius: 3px; padding: 5px; height: fit-content; }
     .profilestats-details > div > span { color: #c4c4c4;font-size: 15px; }
+    .profilestats-premier-rating { height: 32px; display: flex; position: relative;}
+    .profilestats-premier-rating > span { position: absolute; line-height: 32px; font-size: 18px; font-weight: 700; width: 100%; text-align: center; text-indent: 10px; transform: skew(-10deg, 0deg); }
     #profilestats-steam_profile > div { color: white; font-size: 17px }
     #profilestats-steam_profile > div > span { color: #c4c4c4; font-size: 15px }
     #profilestats-leetify_profile_header { display: flex; flex-direction: row; gap: 10px }
     #profilestats-leetify_name { color: white; font-size: 20px; }
-    #profilestats-leetify_premier_rating { color: ${leetifyPremierColor}; font-size: 20px; font-weight: 600; }
+    #profilestats-leetify_premier_rating { color: ${leetifyPremierColor}; }
     #profilestats-csstats_category_name > span { color: #4a7dff}
     #profilestats-csstats_profile_header { display: flex; flex-direction: row; gap: 10px }
     #profilestats-csstats_name { color: white; font-size: 20px; }
@@ -500,6 +519,16 @@ async function renderStats(el, head) {
     challenger: chrome.runtime.getURL("assets/faceit_levels/challenger.png"),
   }
 
+  const premierBgs = {
+    grey: chrome.runtime.getURL("assets/premier_ratings/grey.svg"),
+    lightblue: chrome.runtime.getURL("assets/premier_ratings/lightblue.svg"),
+    blue: chrome.runtime.getURL("assets/premier_ratings/blue.svg"),
+    purple: chrome.runtime.getURL("assets/premier_ratings/purple.svg"),
+    pink: chrome.runtime.getURL("assets/premier_ratings/pink.svg"),
+    red: chrome.runtime.getURL("assets/premier_ratings/red.svg"),
+    gold: chrome.runtime.getURL("assets/premier_ratings/gold.svg"),
+  };
+
   const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null;
   const clone = createTemplate(images);
 
@@ -543,7 +572,7 @@ async function renderStats(el, head) {
   fetchLeetifyProfile(steamId64).then(leetifyData => {
     const content = el.querySelector("#profilestats-leetify_content");
     content.innerHTML = leetifyBackup;
-    leetifyPremierRating = fillLeetify(el, leetifyData, steamId64);
+    leetifyPremierRating = fillLeetify(el, leetifyData, steamId64, premierBgs);
     styleEl.textContent = createStyles(leetifyPremierRating, csStatsPremierRating, faceitLevel);
   });
 
