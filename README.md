@@ -33,4 +33,3 @@ https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemccee
 - View user's Leetify statistics.
 - View user's FaceIt statistics.
 - View user's CSStats statistics (soon).
-- Compactness.
