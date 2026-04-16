@@ -138,7 +138,11 @@ function createTemplate(images) {
   template.innerHTML = `
     <div class="profile_customization">
       <div class="profile_customization_header profilestats-customization_header">
-        CS2 Profile Stats
+        <div>CS2 Profile Stats</div>
+        <div class="profilestats-button_group">
+          <a id="profilestats-csrep_button" class="profilestats-links_button" href="#" target="_blank"><div>CSRep</div></a>
+          <a id="profilestats-csstats_button" class="profilestats-links_button" href="#" target="_blank"><div>CSStats</div></a>
+        </div>
         <button class="profilestats-collapse_button">▲</button>
       </div>
       <div class="profile_customization_block">
@@ -267,6 +271,8 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   }
 
   clone.querySelector("#profilestats-steam_category_logo_name").href = `https://steamcommunity.com/profiles/${steamId64}`;
+  clone.querySelector("#profilestats-csrep_button").href = `https://csteamcommunity.com/profiles/${steamId64}`;
+  clone.querySelector("#profilestats-csstats_button").href = `https://xsteamcommunity.com/profiles/${steamId64}`;
   clone.querySelector("#profilestats-steam_steamid64").textContent = steamId64;
 
   const registered = steamData["registered"]
@@ -444,7 +450,10 @@ function createStyles(leetifyPremierRating, csStatsPremierRating, faceitLevel) {
   const faceitColor = getFaceitColor(faceitLevel);
   return `
     .profilestats-customization_header { display: flex; flex-direction: row; justify-content: space-between; }
+    .profilestats-button_group { display: flex; gap: 5px; }
     .profilestats-customization_header > button { color: white; background: rgba(0,0,0,0.3); border: none; border-radius: 3px; height: 30px; width: 30px }
+    .profilestats-links_button { color: white; background: rgba(0,0,0,0.3); border: none; border-radius: 3px; height: 30px; padding: 0 8px; font-size: 12px; cursor: pointer; display: inline-block; text-decoration: none; line-height: 30px; }
+    .profilestats-link_button > div { display: flex; align-items: center; justify-content: center; height: 100%; }
     .profilestats-category_name { color: white; font-size: 23px; font-weight: 600; }
     .profilestats-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-bottom: 5px; min-height: 40px }
     .profilestats-category_logo_name { display: flex; flex-direction: row; justify-content: start; align-items: center; gap: 10px; }
