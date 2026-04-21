@@ -29,7 +29,9 @@ https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemccee
 - Follow instructions in https://github.com/CS2-Profile-Stats/cs2-profilestats-api.
 
 ## Features
-- View user's Steam data.
-- View user's Leetify statistics.
-- View user's FaceIt statistics.
-- View user's CSStats statistics (soon).
+- Steam data.
+- Leetify statistics.
+- FaceIt statistics.
+- CSStats statistics.
+- CS2Locker inventory statistics.
+- Tons of different customization settings
