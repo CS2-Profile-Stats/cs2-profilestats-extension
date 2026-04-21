@@ -591,7 +591,7 @@ function createTemplate(logos, uiIcons) {
             <input type="checkbox" id="profilestats-checkbox-compact">
           </div>
           <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-compact">Screenshot mode</label>
+            <label for="profilestats-checkbox-screenshot">Screenshot mode</label>
             <input type="checkbox" id="profilestats-checkbox-screenshot">
           </div>
           <div class="profilestats-checkbox">
