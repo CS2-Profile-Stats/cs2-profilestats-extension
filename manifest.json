@@ -3,6 +3,10 @@
   "description": "View CS2 statistics of a user directly in their profile.",
   "version": "0.0.3",
   "manifest_version": 3,
+  "host_permissions": [
+    "https://csstats.gg/*",
+    "https://api.cs2ps.com/*"
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "cs2-profile-stats@domitori.xyz",

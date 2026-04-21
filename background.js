@@ -6,4 +6,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true;
   }
+  if (message.type === "fetchHtml") {
+    fetch(message.url)
+      .then(res => res.ok ? res.text() : null)
+      .then(sendResponse)
+      .catch(() => sendResponse(null));
+    return true;
+  }
 });
