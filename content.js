@@ -1,4 +1,4 @@
-const API_URL = "https://api.cs2ps.com";
+const API_URL = "http://localhost:8080";
 
 // cache for 5 minutes
 const CACHE_TTL = 5 * 60 * 1000;
