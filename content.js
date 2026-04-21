@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8080";
+const API_URL = "https://api.cs2ps.com";
 
 // cache for 5 minutes
 const CACHE_TTL = 5 * 60 * 1000;
@@ -1167,6 +1167,11 @@ function createStyles() {
     .profilestats-settings { display: flex; flex-direction: row; align-items: center; justify-content: end; gap: 5px; flex-wrap: wrap; }
     .profilestats-checkbox { display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 3px; }
     .profilestats-checkbox > label { margin-right: 0 }
+
+    @media (orientation: portrait) {
+      .profilestats-ranks { flex-direction: column }
+      .profilestats-ranks > div { width: 100%; box-sizing: border-box; }
+    }
 
     .profilestats-compact [data-compact="hidden"] { display: none !important; }
     .profilestats-compact #profilestats-leetify_content > .profilestats-details { grid-template-columns: repeat(5, 1fr) !important; }
