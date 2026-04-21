@@ -772,12 +772,13 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   const playtime = steamData.cs2_playtime;
   const playtime2Weeks = steamData.cs2_playtime_2weeks
   const playtimeEl = clone.querySelector("#profilestats-steam_cs2_playtime")
+
   if (playtime != null && playtime > 0) {
     const formattedPlaytime = new Intl.NumberFormat("en-US").format(playtime);
     const formattedPlaytime2Weeks = new Intl.NumberFormat("en-US").format(playtime2Weeks);
     playtimeEl.textContent = `${formattedPlaytime}h (${formattedPlaytime2Weeks}h past 2 weeks)`;
   } else {
-    playtimeEl.textContent = `${isGamesPrivate ? "Private" : "-"}`;
+    playtimeEl.textContent = `${isGamesPrivate || playtime == null ? "Private" : "-"}`;
   }
 }
 
