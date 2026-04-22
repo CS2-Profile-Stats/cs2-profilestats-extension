@@ -434,6 +434,7 @@ function createTemplate(logos, uiIcons) {
           </div>
           <div id="profilestats-leetify_content">
             <div class="profilestats-details">
+              <div>K/D<span id="profilestats-leetify_kd_ratio"></span></div>
               <div data-compact="hidden">Rating<span id="profilestats-leetify_leetify_rating"></span></div>
               <div>Matches<span id="profilestats-leetify_matches"></span></div>
               <div data-compact="hidden">First match<span id="profilestats-leetify_first_match"></span></div>
@@ -803,6 +804,9 @@ function fillLeetify(clone, leetifyData) {
   });
 
   const stats = leetifyData.stats;
+
+  clone.querySelector("#profilestats-leetify_kd_ratio").textContent = `${stats.kd_ratio ?? "-"}`
+
   const premierRating = stats.premier_rating;
 
   clone.querySelector("#profilestats-leetify_premier_rating").appendChild(createPremierRating(premierRating ?? 0))
@@ -1175,7 +1179,7 @@ function createStyles() {
     }
 
     .profilestats-compact [data-compact="hidden"] { display: none !important; }
-    .profilestats-compact #profilestats-leetify_content > .profilestats-details { grid-template-columns: repeat(5, 1fr) !important; }
+    .profilestats-compact #profilestats-leetify_content > .profilestats-details { grid-template-columns: repeat(6, 1fr) !important; }
     .profilestats-compact #profilestats-faceit_content > .profilestats-details { grid-template-columns: repeat(6, 1fr) !important; }
 
     .profilestats-screenshot [data-screenshot="hidden"] { display: none !important; }
