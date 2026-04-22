@@ -434,7 +434,7 @@ function createTemplate(logos, uiIcons) {
           </div>
           <div id="profilestats-leetify_content">
             <div class="profilestats-details">
-              <div>K/D<span id="profilestats-leetify_kd_ratio"></span></div>
+              <div>K/D Ratio<span id="profilestats-leetify_kd_ratio"></span></div>
               <div data-compact="hidden">Rating<span id="profilestats-leetify_leetify_rating"></span></div>
               <div>Matches<span id="profilestats-leetify_matches"></span></div>
               <div data-compact="hidden">First match<span id="profilestats-leetify_first_match"></span></div>
@@ -480,7 +480,7 @@ function createTemplate(logos, uiIcons) {
           </div>
           <div id="profilestats-csstats_content">
             <div class="profilestats-details">
-              <div>K/D<span id="profilestats-csstats_kd_ratio"></span></div>
+              <div>K/D Ratio<span id="profilestats-csstats_kd_ratio"></span></div>
               <div data-compact="hidden">HLTV Rating<span id="profilestats-csstats_hltv"></span></div>
               <div>Matches<span id="profilestats-csstats_matches"></span></div>
               <div>Winrate<span id="profilestats-csstats_win_rate"></span></div>
@@ -529,7 +529,7 @@ function createTemplate(logos, uiIcons) {
             <div class="profilestats-details">
               <div>Elo<span id="profilestats-faceit_elo"></span></div>
               <div>Matches<span id="profilestats-faceit_matches"></span></div>
-              <div>K/D<span id="profilestats-faceit_kd_ratio"></span></div>
+              <div>K/D Ratio<span id="profilestats-faceit_kd_ratio"></span></div>
               <div>HS%<span id="profilestats-faceit_hs_percentage"></span></div>
               <div>Winrate<span id="profilestats-faceit_win_rate"></span></div>
               <div data-compact="hidden">Recent<span id="profilestats-faceit_recent_results"></span></div>
