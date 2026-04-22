@@ -1184,7 +1184,7 @@ function createStyles() {
   `;
 }
 
-async function setupSettings(el) {
+async function setupSettings(el, fetchers) {
 
   const settingsBtn = el.querySelector(".profilestats-settings_button");
   const settingsEl = el.querySelector(".profilestats-settings");
@@ -1270,12 +1270,16 @@ async function setupSettings(el) {
     checkbox.checked = settings[key] ?? true;
     section.style.display = checkbox.checked ? "" : "none";
 
+    // only fetch if visible
+    if (checkbox.checked) fetchers[key]?.();
+
     checkbox.addEventListener("change", async () => {
       settings[key] = checkbox.checked;
       section.style.display = checkbox.checked ? "" : "none";
+      if (checkbox.checked) fetchers[key]?.();
       await chrome.storage.local.set({ "profilestats:settings": settings });
     });
-  })
+  });
 }
 
 async function renderStats(el, head) {
@@ -1327,75 +1331,90 @@ async function renderStats(el, head) {
     </div>
   `
 
-  clone.querySelector("#profilestats-steam_content").innerHTML = loadingAnimation;
-  clone.querySelector("#profilestats-leetify_content").innerHTML = loadingAnimation;
-  clone.querySelector("#profilestats-csstats_content").innerHTML = loadingAnimation;
-  clone.querySelector("#profilestats-faceit_content").innerHTML = loadingAnimation;
-  clone.querySelector("#profilestats-cs2locker_content").innerHTML = loadingAnimation;
-
   const styleEl = document.createElement("style");
   styleEl.textContent = createStyles();
   head.appendChild(styleEl);
 
   el.prepend(clone);
-  await setupSettings(el);
+
+  const fetcher = (fetchFn, fillFn, contentEl, backup) => {
+    let loaded = false
+    return () => {
+      if (loaded) return;
+      loaded = true;
+      el.querySelector(contentEl).innerHTML = loadingAnimation;
+      fetchFn(steamId64).then(data => {
+        el.querySelector(contentEl).innerHTML = backup;
+        fillFn(el, data)
+      })
+    }
+  }
+
+  const fetchers = {
+    showSteam: fetcher(
+      fetchSteamProfile,
+      (el, data) => fillSteam(el, data, steamId64, isGamesPrivate),
+      "#profilestats-steam_content",
+      steamBackup,
+    ),
+    showLeetify: fetcher(
+      fetchLeetifyProfile,
+      fillLeetify,
+      "#profilestats-leetify_content",
+      leetifyBackup,
+    ),
+    showCSStats: fetcher(
+      fetchCSStatsProfile,
+      fillCSStats,
+      "#profilestats-csstats_content",
+      csStatsBackup,
+    ),
+    showCS2Locker: fetcher(
+      fetchCS2Locker,
+      fillCS2Locker,
+      "#profilestats-cs2locker_content",
+      cs2lockerBackup,
+    ),
+    showFaceit: (() => {
+      // faceit is a little more complicated since we have csgo and cs2 to handle
+      let loaded = false;
+      return () => {
+        if (loaded) return;
+        loaded = true;
+        const content = el.querySelector("#profilestats-faceit_content");
+        content.innerHTML = loadingAnimation;
+
+        Promise.all([
+          fetchFaceitProfile(steamId64),
+          fetchFaceitCsgoProfile(steamId64),
+        ]).then(([cs2Data, csgoData]) => {
+          const csData = { cs2: cs2Data, csgo: csgoData };
+          const initialGame = (!cs2Data || cs2Data.error) ? "csgo" : "cs2";
+
+          content.innerHTML = faceitBackup;
+          fillFaceit(el, csData[initialGame]);
+
+          el.querySelectorAll(".profilestats-tab").forEach(btn => {
+            const game = btn.dataset.game;
+            const data = csData[game];
+
+            btn.style.display = (!data || data.error) ? "none" : "";
+            btn.classList.toggle("active-tab", game === initialGame);
+
+            btn.addEventListener("click", () => {
+              el.querySelectorAll(".profilestats-tab").forEach(t => t.classList.remove("active-tab"));
+              btn.classList.add("active-tab");
+              el.querySelector("#profilestats-faceit_recent_results").innerHTML = "";
+              fillFaceit(el, csData[game]);
+            });
+          });
+        });
+      };
+    })(),
+  }
 
   fillLinks(el, steamId64)
-
-  fetchSteamProfile(steamId64).then(steamData => {
-    const content = el.querySelector("#profilestats-steam_content");
-    content.innerHTML = steamBackup;
-    fillSteam(el, steamData, steamId64, isGamesPrivate);
-  });
-
-  fetchCS2Locker(steamId64).then(cs2lockerData => {
-    const content = el.querySelector("#profilestats-cs2locker_content");
-    content.innerHTML = cs2lockerBackup;
-    fillCS2Locker(el, cs2lockerData);
-  });
-
-  fetchLeetifyProfile(steamId64).then(leetifyData => {
-    const content = el.querySelector("#profilestats-leetify_content");
-    content.innerHTML = leetifyBackup;
-    fillLeetify(el, leetifyData);
-  });
-
-  fetchCSStatsProfile(steamId64).then(csStatsData => {
-    const content = el.querySelector("#profilestats-csstats_content");
-    content.innerHTML = csStatsBackup;
-    fillCSStats(el, csStatsData, steamId64);
-  });
-
-  // faceit is a little more complicated since we have csgo and cs2 to handle
-  (async () => {
-    const content = el.querySelector("#profilestats-faceit_content");
-
-    const [cs2Data, csgoData] = await Promise.all([
-      fetchFaceitProfile(steamId64),
-      fetchFaceitCsgoProfile(steamId64),
-    ]);
-
-    const csData = { cs2: cs2Data, csgo: csgoData };
-    const initialGame = (!cs2Data || cs2Data.error) ? "csgo" : "cs2";
-
-    content.innerHTML = faceitBackup;
-    fillFaceit(el, csData[initialGame]);
-
-    el.querySelectorAll(".profilestats-tab").forEach(btn => {
-      const game = btn.dataset.game;
-      const data = csData[game];
-
-      btn.style.display = (!data || data.error) ? "none" : "";
-      btn.classList.toggle("active-tab", game === initialGame);
-
-      btn.addEventListener("click", () => {
-        el.querySelectorAll(".profilestats-tab").forEach(t => t.classList.remove("active-tab"));
-        btn.classList.add("active-tab");
-        el.querySelector("#profilestats-faceit_recent_results").innerHTML = "";
-        fillFaceit(el, csData[game]);
-      });
-    });
-  })();
+  await setupSettings(el, fetchers);
 }
 
 renderStats(
