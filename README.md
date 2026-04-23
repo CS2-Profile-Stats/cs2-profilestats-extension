@@ -11,16 +11,16 @@ https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemccee
 
 ### Steam
 
+#### Millennium (recommended)
+- Install [Millennium](https://docs.steambrew.app/users/getting-started/installation).
+- Install [Extendium](https://steambrew.app/plugin?id=788ed8554492) plugin.
+- Open Extendium, click `Install extension`, enter `https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemcceejdnobfgnpje` and click `Install`.
+
 #### Manually
 - Open any link in a new tab in your Steam client.
 - Enter `https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemcceejdnobfgnpje` and press enter.
 - Click `Add to Chrome`, you will be prompted to save the extension file.
 - Save the file and the extension is now installed.
-
-#### Millennium
-- Install [Millennium](https://docs.steambrew.app/users/getting-started/installation).
-- Install [Extendium](https://steambrew.app/plugin?id=788ed8554492) plugin.
-- Open Extendium, click `Install extension`, enter `https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemcceejdnobfgnpje` and click `Install`.
 
 ## Self-hosting
 - Clone the repository: `https://github.com/CS2-Profile-Stats/cs2-profilestats-extension.git`.
