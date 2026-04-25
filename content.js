@@ -184,15 +184,9 @@ async function fetchCS2Locker(steamId64) {
   );
 }
 
-async function fetchFaceitProfile(steamId64) {
-  return cachedFetch(`faceitcs2:${steamId64}`, () =>
-    backgroundFetch(`${API_URL}/api/stats/faceit/${steamId64}?game=cs2`)
-  );
-}
-
-async function fetchFaceitCsgoProfile(steamId64) {
-  return cachedFetch(`faceitcsgo:${steamId64}`, () =>
-    backgroundFetch(`${API_URL}/api/stats/faceit/${steamId64}?game=csgo`)
+async function fetchFaceitProfile(steamId64, game = "cs2", limit = 90) {
+  return cachedFetch(`faceit:${steamId64}:${game}:${limit}`, () =>
+    backgroundFetch(`${API_URL}/api/stats/faceit/${steamId64}?game=${game}&limit=${limit}`)
   );
 }
 
@@ -551,6 +545,14 @@ function createTemplate(logos, uiIcons) {
               </div>
             </div>
             <div class="profilestats-header_end">
+              <div class="profilestats-dropdown">
+                <select name="profilestats-faceit_limit" id="profilestats-faceit_limit">
+                  <option value="90">90 Matches</option>
+                  <option value="60">60 Matches</option>
+                  <option value="30">30 Matches</option>
+                  <option value="15">15 Matches</option>
+                </select>
+              </div>
               <div class="profilestats-tabs">
                 <button class="profilestats-tab active-tab" data-game="cs2">CS2</button>
                 <button class="profilestats-tab" data-game="csgo">CS:GO</button>
@@ -1226,6 +1228,8 @@ function createStyles() {
     .profilestats-cs2locker_skin_fv { font-size: 11px; text-align: right; }
     .profilestats-cs2locker_skin_name { font-size: 11px; text-align: right; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .profilestats-cs2locker_skin_name:hover { text-decoration: underline }
+    .profilestats-dropdown > select { color: #c4c4c4; }
+    .profilestats-dropdown > select > option { color: #c4c4c4; background: #222222; }
     .profilestats-settings { display: flex; flex-direction: row; align-items: center; justify-content: end; gap: 5px; flex-wrap: wrap; }
     .profilestats-checkbox { display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 3px; }
     .profilestats-checkbox > label { margin-right: 0 }
@@ -1488,39 +1492,51 @@ async function renderStats(el, head) {
       cs2lockerBackup,
     ),
     showFaceit: (() => {
-      // faceit is a little more complicated since we have csgo and cs2 to handle
       let loaded = false;
       return () => {
         if (loaded) return;
         loaded = true;
+
         const content = el.querySelector("#profilestats-faceit_content");
-        content.innerHTML = loadingAnimation;
+        const limitEl = el.querySelector("#profilestats-faceit_limit");
+        const tabs = [...el.querySelectorAll(".profilestats-tab")];
+        const games = tabs.map(btn => btn.dataset.game);
+        let currentGame = games[0];
+        let currentData = {};
 
-        Promise.all([
-          fetchFaceitProfile(steamId64),
-          fetchFaceitCsgoProfile(steamId64),
-        ]).then(([cs2Data, csgoData]) => {
-          const csData = { cs2: cs2Data, csgo: csgoData };
-          const initialGame = (!cs2Data || cs2Data.error) ? "csgo" : "cs2";
-
-          content.innerHTML = faceitBackup;
-          fillFaceit(el, csData[initialGame]);
-
-          el.querySelectorAll(".profilestats-tab").forEach(btn => {
-            const game = btn.dataset.game;
-            const data = csData[game];
-
-            btn.style.display = (!data || data.error) ? "none" : "";
-            btn.classList.toggle("active-tab", game === initialGame);
-
-            btn.addEventListener("click", () => {
-              el.querySelectorAll(".profilestats-tab").forEach(t => t.classList.remove("active-tab"));
-              btn.classList.add("active-tab");
-              el.querySelector("#profilestats-faceit_recent_results").innerHTML = "";
-              fillFaceit(el, csData[game]);
-            });
+        tabs.forEach(btn => {
+          btn.addEventListener("click", () => {
+            currentGame = btn.dataset.game;
+            tabs.forEach(t => t.classList.remove("active-tab"));
+            btn.classList.add("active-tab");
+            el.querySelector("#profilestats-faceit_recent_results").innerHTML = "";
+            fillFaceit(el, currentData[currentGame]);
           });
         });
+
+        const load = (limit, isInitial = false) => {
+          content.innerHTML = loadingAnimation;
+          Promise.all(games.map(game => fetchFaceitProfile(steamId64, game, limit)))
+            .then(results => {
+              currentData = Object.fromEntries(games.map((game, i) => [game, results[i]]));
+
+              if (isInitial) {
+                currentGame = games.find(g => currentData[g] && !currentData[g].error) ?? games[0];
+              }
+
+              content.innerHTML = faceitBackup;
+              fillFaceit(el, currentData[currentGame]);
+
+              tabs.forEach(btn => {
+                const game = btn.dataset.game;
+                btn.style.display = (!currentData[game] || currentData[game].error) ? "none" : "";
+                btn.classList.toggle("active-tab", game === currentGame);
+              });
+            });
+        };
+
+        limitEl.addEventListener("change", () => load(parseInt(limitEl.value)));
+        load(parseInt(limitEl.value), true);
       };
     })(),
   }
