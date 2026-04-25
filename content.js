@@ -546,14 +546,14 @@ function createTemplate(logos, uiIcons) {
             </div>
             <div class="profilestats-header_end">
               <div class="profilestats-dropdown">
-                <select name="profilestats-faceit_limit" id="profilestats-faceit_limit">
+                <select name="profilestats-faceit_limit" id="profilestats-faceit_limit" style="display: none">
                   <option value="90">90 Matches</option>
                   <option value="60">60 Matches</option>
                   <option value="30">30 Matches</option>
                   <option value="15">15 Matches</option>
                 </select>
               </div>
-              <div class="profilestats-tabs">
+              <div class="profilestats-tabs" id="profilestats-faceit_tabs" style="display: none">
                 <button class="profilestats-tab active-tab" data-game="cs2">CS2</button>
                 <button class="profilestats-tab" data-game="csgo">CS:GO</button>
               </div>
@@ -1030,6 +1030,8 @@ function fillFaceit(clone, faceitData) {
   }
 
   clone.querySelector("#profilestats-faceit_profile").style.display = "";
+  clone.querySelector("#profilestats-faceit_limit").style.display = "";
+  clone.querySelector("#profilestats-faceit_tabs").style.display = "";
 
   const stats = faceitData.stats;
   const level = faceitData.level;
