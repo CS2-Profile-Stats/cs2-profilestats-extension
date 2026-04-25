@@ -399,7 +399,7 @@ function createTemplate(logos, uiIcons) {
               </div>
             </div>
             <div class="profilestats-header_end">
-              <div class="profilestats-updown" id="profilestats-steam_updown" style="display: none">
+              <div data-screenshot="hidden" class="profilestats-updown" id="profilestats-steam_updown" style="display: none">
                 <button class="profilestats-updown_button profilestats-updown_button_up">
                   <img src="${chevronUp}"/>
                 </button>
@@ -436,7 +436,7 @@ function createTemplate(logos, uiIcons) {
               <a id="profilestats-leetify_badge" href="https://leetify.com/" target="_blank">
                 <img src="${leetifyBadge}"/>
               </a>
-              <div class="profilestats-updown" id="profilestats-leetify_updown" style="display: none">
+              <div data-screenshot="hidden" class="profilestats-updown" id="profilestats-leetify_updown" style="display: none">
                 <button class="profilestats-updown_button profilestats-updown_button_up">
                   <img src="${chevronUp}"/>
                 </button>
@@ -492,7 +492,7 @@ function createTemplate(logos, uiIcons) {
               <button data-screenshot="hidden" class="profilestats-show_button" id="profilestats-csstats_show_button" style="display: none">Show all ranks</button>
             </div>
             <div class="profilestats-header_end">
-              <div class="profilestats-updown" id="profilestats-csstats_updown" style="display: none">
+              <div data-screenshot="hidden" class="profilestats-updown" id="profilestats-csstats_updown" style="display: none">
                 <button class="profilestats-updown_button profilestats-updown_button_up">
                   <img src="${chevronUp}"/>
                 </button>
@@ -545,7 +545,7 @@ function createTemplate(logos, uiIcons) {
               </div>
             </div>
             <div class="profilestats-header_end">
-              <div class="profilestats-dropdown">
+              <div data-screenshot="hidden" class="profilestats-dropdown">
                 <select name="profilestats-faceit_limit" id="profilestats-faceit_limit" style="display: none">
                   <option value="90">90 Matches</option>
                   <option value="60">60 Matches</option>
@@ -557,7 +557,7 @@ function createTemplate(logos, uiIcons) {
                 <button class="profilestats-tab active-tab" data-game="cs2">CS2</button>
                 <button class="profilestats-tab" data-game="csgo">CS:GO</button>
               </div>
-              <div class="profilestats-updown" id="profilestats-faceit_updown" style="display: none">
+              <div data-screenshot="hidden" class="profilestats-updown" id="profilestats-faceit_updown" style="display: none">
                 <button class="profilestats-updown_button profilestats-updown_button_up">
                   <img src="${chevronUp}"/>
                 </button>
@@ -597,7 +597,7 @@ function createTemplate(logos, uiIcons) {
                 <span>Powered by</span>
                 <img src="${cs2lockerBadge}"/>
               </a>
-              <div class="profilestats-updown" id="profilestats-cs2locker_updown" style="display: none">
+              <div data-screenshot="hidden" class="profilestats-updown" id="profilestats-cs2locker_updown" style="display: none">
                 <button class="profilestats-updown_button profilestats-updown_button_up">
                   <img src="${chevronUp}"/>
                 </button>
@@ -1245,10 +1245,9 @@ function createStyles() {
     .profilestats-compact #profilestats-leetify_content > .profilestats-details { grid-template-columns: repeat(6, 1fr) !important; }
     .profilestats-compact #profilestats-faceit_content > .profilestats-details { grid-template-columns: repeat(6, 1fr) !important; }
 
-    .profilestats-screenshot [data-screenshot="hidden"] { display: none !important; }
     .profilestats-edit .profilestats-updown { display: flex !important; }
-
     .profilestats-hide-failed [data-failed="true"] { display: none !important; }
+    .profilestats-screenshot [data-screenshot="hidden"] { display: none !important; }
   `;
 }
 
