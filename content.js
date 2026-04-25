@@ -369,7 +369,7 @@ function createLockerSkin(skin, currency) {
 
 function createTemplate(logos, uiIcons) {
   const { steamLogo, leetifyLogo, leetifyBadge, csstatsLogo, faceitLogo, cs2lockerLogo, cs2lockerBadge, csrepLogo, steamidLogo, csfloatLogo, steamhistoryLogo } = logos;
-  const { settings } = uiIcons;
+  const { settings, chevronUp, chevronDown } = uiIcons;
 
   const template = document.createElement("template");
   template.innerHTML = `
@@ -404,6 +404,16 @@ function createTemplate(logos, uiIcons) {
                 </div>
               </div>
             </div>
+            <div class="profilestats-header_end">
+              <div class="profilestats-updown" id="profilestats-steam_updown" style="display: none">
+                <button class="profilestats-updown_button profilestats-updown_button_up">
+                  <img src="${chevronUp}"/>
+                </button>
+                <button class="profilestats-updown_button profilestats-updown_button_down">
+                  <img src="${chevronDown}"/>
+                </button>
+              </div>
+            </div>
           </div>
           <div id="profilestats-steam_content">
             <div id="profilestats-steam_details">
@@ -428,9 +438,19 @@ function createTemplate(logos, uiIcons) {
               </div>
               <button data-screenshot="hidden" class="profilestats-show_button" id="profilestats-leetify_show_button" style="display: none">Show all ranks</button>
             </div>
-            <a id="profilestats-leetify_badge" href="https://leetify.com/" target="_blank">
-              <img src="${leetifyBadge}"/>
-            </a>
+            <div class="profilestats-header_end">
+              <a id="profilestats-leetify_badge" href="https://leetify.com/" target="_blank">
+                <img src="${leetifyBadge}"/>
+              </a>
+              <div class="profilestats-updown" id="profilestats-leetify_updown" style="display: none">
+                <button class="profilestats-updown_button profilestats-updown_button_up">
+                  <img src="${chevronUp}"/>
+                </button>
+                <button class="profilestats-updown_button profilestats-updown_button_down">
+                  <img src="${chevronDown}"/>
+                </button>
+              </div>
+            </div>
           </div>
           <div id="profilestats-leetify_content">
             <div class="profilestats-details">
@@ -477,6 +497,16 @@ function createTemplate(logos, uiIcons) {
               </div>
               <button data-screenshot="hidden" class="profilestats-show_button" id="profilestats-csstats_show_button" style="display: none">Show all ranks</button>
             </div>
+            <div class="profilestats-header_end">
+              <div class="profilestats-updown" id="profilestats-csstats_updown" style="display: none">
+                <button class="profilestats-updown_button profilestats-updown_button_up">
+                  <img src="${chevronUp}"/>
+                </button>
+                <button class="profilestats-updown_button profilestats-updown_button_down">
+                  <img src="${chevronDown}"/>
+                </button>
+              </div>
+            </div>
           </div>
           <div id="profilestats-csstats_content">
             <div class="profilestats-details">
@@ -520,9 +550,19 @@ function createTemplate(logos, uiIcons) {
                 </div>
               </div>
             </div>
-            <div class="profilestats-tabs">
-              <button class="profilestats-tab active-tab" data-game="cs2">CS2</button>
-              <button class="profilestats-tab" data-game="csgo">CS:GO</button>
+            <div class="profilestats-header_end">
+              <div class="profilestats-tabs">
+                <button class="profilestats-tab active-tab" data-game="cs2">CS2</button>
+                <button class="profilestats-tab" data-game="csgo">CS:GO</button>
+              </div>
+              <div class="profilestats-updown" id="profilestats-faceit_updown" style="display: none">
+                <button class="profilestats-updown_button profilestats-updown_button_up">
+                  <img src="${chevronUp}"/>
+                </button>
+                <button class="profilestats-updown_button profilestats-updown_button_down">
+                  <img src="${chevronDown}"/>
+                </button>
+              </div>
             </div>
           </div>
           <div id="profilestats-faceit_content">
@@ -550,10 +590,20 @@ function createTemplate(logos, uiIcons) {
                 </div>
               </div>
             </div>
-            <a id="profilestats-cs2locker_badge" href="https://cs2locker.com/" target="_blank">
-              <span>Powered by</span>
-              <img src="${cs2lockerBadge}"/>
-            </a>
+            <div class="profilestats-header_end">
+              <a id="profilestats-cs2locker_badge" href="https://cs2locker.com/" target="_blank">
+                <span>Powered by</span>
+                <img src="${cs2lockerBadge}"/>
+              </a>
+              <div class="profilestats-updown" id="profilestats-cs2locker_updown" style="display: none">
+                <button class="profilestats-updown_button profilestats-updown_button_up">
+                  <img src="${chevronUp}"/>
+                </button>
+                <button class="profilestats-updown_button profilestats-updown_button_down">
+                  <img src="${chevronDown}"/>
+                </button>
+              </div>
+            </div>
           </div>
           <div id="profilestats-cs2locker_content">
             <button data-screenshot="hidden" class="profilestats-show_button" id="profilestats-cs2locker_show_button" style="display: none">Show best skins</button>
@@ -592,12 +642,14 @@ function createTemplate(logos, uiIcons) {
             <input type="checkbox" id="profilestats-checkbox-compact">
           </div>
           <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-screenshot">Screenshot mode</label>
-            <input type="checkbox" id="profilestats-checkbox-screenshot">
-          </div>
-          <div class="profilestats-checkbox">
             <label for="profilestats-checkbox-failed">Hide failed</label>
             <input type="checkbox" id="profilestats-checkbox-failed">
+          </div>
+          <div class="profilestats-button">
+            <button id="profilestats-button-screenshot">Enable screenshot mode</button>
+          </div>
+          <div class="profilestats-button">
+            <button id="profilestats-button-edit">Toggle edit order</button>
           </div>
         </div>
       </div>
@@ -1096,10 +1148,15 @@ function createStyles() {
     .profilestats-links > a { padding: 5px; border-radius: 3px; display: flex; height: 20px; background: rgba(0,0,0,0.3); }
     .profilestats-links > a:hover { filter: brightness(0.8); }
     .profilestats-header_start { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+    .profilestats-header_end { display: flex; flex-direction: row; align-items: center; gap: 10px; }
     .profilestats-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; min-height: 40px; margin-bottom: 8px; }
     .profilestats-category_logo { display: flex; flex-direction: row; justify-content: start; align-items: center; background: rgba(0,0,0,0.3); height: 30px; padding: 4px; border-radius: 5px; }
     .profilestats-category_logo:hover { filter: brightness(0.8); }
     .profilestats-category_logo > img { height: 100%; }
+    .profilestats-updown { display: flex; flex-direction: column; justify-content: center; height: 40px }
+    .profilestats-updown_button { background: none; border: none; cursor: default; height: 30%; filter: brightness(0.5); display: flex; align-items: center; justify-content: center; }
+    .profilestats-updown_button:hover { filter: brightness(0.7); }
+    .profilestats-updown_button > img { height: 100%; }
     #profilestats-leetify_badge { height: 40px; }
     #profilestats-leetify_badge > img { height: 100%; }
     .profilestats-tab { background: none; border: none; color: white; cursor: pointer; }
@@ -1183,6 +1240,7 @@ function createStyles() {
     .profilestats-compact #profilestats-faceit_content > .profilestats-details { grid-template-columns: repeat(6, 1fr) !important; }
 
     .profilestats-screenshot [data-screenshot="hidden"] { display: none !important; }
+    .profilestats-edit .profilestats-updown { display: flex !important; }
 
     .profilestats-hide-failed [data-failed="true"] { display: none !important; }
   `;
@@ -1242,9 +1300,14 @@ async function setupSettings(el, fetchers) {
     block.style.display = isCollapsed ? "block" : "none";
   });
 
-  const screenshotCb = el.querySelector("#profilestats-checkbox-screenshot")
-  screenshotCb.addEventListener("change", () => {
-    el.classList.toggle("profilestats-screenshot", screenshotCb.checked)
+  const screenshotBtn = el.querySelector("#profilestats-button-screenshot")
+  screenshotBtn.addEventListener("click", () => {
+    el.classList.toggle("profilestats-screenshot")
+  })
+
+  const editBtn = el.querySelector("#profilestats-button-edit")
+  editBtn.addEventListener("click", () => {
+    el.classList.toggle("profilestats-edit")
   })
 
   const compactCb = el.querySelector("#profilestats-checkbox-compact");
@@ -1286,6 +1349,48 @@ async function setupSettings(el, fetchers) {
   });
 }
 
+async function setupUpDown(el) {
+  const block = el.querySelector(".profile_customization_block");
+
+  const saved = await chrome.storage.local.get("profilestats:order");
+  const order = saved["profilestats:order"];
+  if (order?.length) {
+    order.forEach(sectionClass => {
+      const section = block.querySelector(`.${sectionClass}`);
+      if (section) block.appendChild(section);
+    });
+  }
+
+  const getSectionId = (section) =>
+    [...section.classList].find(c => c.startsWith("profilestats-") && c !== "showcase_content_bg");
+
+  const saveOrder = async () => {
+    const sections = [...block.querySelectorAll(".showcase_content_bg")];
+    const order = sections.map(getSectionId);
+    await chrome.storage.local.set({ "profilestats:order": order });
+  };
+
+  block.querySelectorAll(".profilestats-updown").forEach(updown => {
+    const section = updown.closest(".showcase_content_bg");
+
+    updown.querySelector(".profilestats-updown_button_up").addEventListener("click", () => {
+      const prevSibling = section.previousElementSibling;
+      if (prevSibling && !prevSibling.classList.contains("profilestats-settings")) {
+        block.insertBefore(section, prevSibling);
+        saveOrder();
+      }
+    });
+
+    updown.querySelector(".profilestats-updown_button_down").addEventListener("click", () => {
+      const nextSibling = section.nextElementSibling;
+      if (nextSibling && !nextSibling.classList.contains("profilestats-settings")) {
+        block.insertBefore(nextSibling, section);
+        saveOrder();
+      }
+    });
+  });
+}
+
 async function renderStats(el, head) {
   if (!el) return;
   const path = window.location.pathname;
@@ -1314,6 +1419,8 @@ async function renderStats(el, head) {
 
   const uiIcons = {
     settings: chrome.runtime.getURL("assets/ui/settings.svg"),
+    chevronUp: chrome.runtime.getURL("assets/ui/chevron_up.svg"),
+    chevronDown: chrome.runtime.getURL("assets/ui/chevron_down.svg"),
   };
 
   const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null;
@@ -1340,6 +1447,7 @@ async function renderStats(el, head) {
   head.appendChild(styleEl);
 
   el.prepend(clone);
+  setupUpDown(el);
 
   const fetcher = (fetchFn, fillFn, contentEl, backup) => {
     let loaded = false
