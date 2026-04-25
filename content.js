@@ -1180,7 +1180,7 @@ function createStyles() {
     .profilestats-rank-icon > img { height: 28px; }
     .profilestats-ranks-header { color: #969696; font-size: 15px; text-align: center; }
     .profilestats-ranks-header:nth-child(1) { text-align: left; text-indent: 5px; }
-    .profilestats-ranks-left, .profilestats-ranks-right { display: flex; flex-direction: column; gap: 10px; width: 50%; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 3px; }
+    .profilestats-ranks-left, .profilestats-ranks-right { display: flex; flex-direction: column; gap: 10px; flex: 1; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 3px; }
     .profilestats-ranks-section { display: flex; flex-direction: column; }
     .profilestats-ranks-section-label { font-size: 18px; color: white; }
     .profilestats-ranks-premier { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 5px 5px; align-self: start; width: 100%; }
