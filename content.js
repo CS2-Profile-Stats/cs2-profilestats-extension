@@ -1092,7 +1092,7 @@ function fillFaceit(clone, faceitData) {
 
 
   const recentContainer = clone.querySelector("#profilestats-faceit_recent_results");
-  const recentResults = stats.recent_results;
+  const recentResults = stats.recent_results?.slice(-stats.matches);
   if (recentResults?.length > 0) {
     recentResults.forEach(result => {
       const span = document.createElement("span");
