@@ -399,7 +399,10 @@ function createTemplate(logos, uiIcons) {
         <div data-screenshot="hidden" class="showcase_content_bg profilestats-settings" style="display: none">
           <div class="profilestats-header">
             <div class="profilestats-header_start">
-              <span id="profilestats-settings_heading">Settings</span>
+              <div id="profilestats-settings_heading">
+                <span>Settings</span>
+                <span id="profilestats-settings_heading_first_setup" style="display: none;">(first setup)</span>
+              </div>
               <button id="profilestats-button-screenshot">Enable screenshot mode</button>
               <button id="profilestats-button-edit">Toggle edit order</button>
             </div>
@@ -474,6 +477,7 @@ function createTemplate(logos, uiIcons) {
                 </div>
               </div>
             </div>
+            <button id="profilestats-settings_save_button">Finish first setup</button>
           </div>
         </div>
         <div class="showcase_content_bg profilestats-steam">
@@ -1291,7 +1295,8 @@ function createStyles() {
 
     .profilestats-settings button { background: rgba(0,0,0,0.3); border: none; color: #c4c4c4; height: 30px; cursor: pointer; }
     .profilestats-settings button:hover { filter: brightness(0.8); }
-    #profilestats-settings_heading { font-size: 20px; color: white; }
+    #profilestats-settings_save_button { font-size: 18px; height: 35px; }
+    #profilestats-settings_heading { font-size: 20px; color: white; gap: 5px; }
     #profilestats-settings_details { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; }
     #profilestats-settings_content { display: flex; flex-direction: column; gap: 10px; }
     .profilestats-settings_category { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; width: max-content; flex: 1; }
@@ -1322,6 +1327,7 @@ async function setupSettings(el, fetchers) {
   });
 
   const saved = await chrome.storage.local.get("profilestats:settings");
+  const isFirstSetup = !saved["profilestats:settings"];
   const settings = saved["profilestats:settings"] || {
     startCollapsed: false,
     compactMode: false,
@@ -1332,6 +1338,26 @@ async function setupSettings(el, fetchers) {
     showCS2Locker: false,
     hideFailed: false,
   };
+
+  if (isFirstSetup) {
+    settingsEl.style.display = "";
+    el.querySelector("#profilestats-settings_heading_first_setup").style.display = "";
+  }
+
+  const saveBtn = el.querySelector("#profilestats-settings_save_button");
+
+  if (isFirstSetup) {
+    saveBtn.style.display = "";
+  } else {
+    saveBtn.style.display = "none";
+  }
+
+  saveBtn.addEventListener("click", () => {
+    chrome.storage.local.set({ "profilestats:settings": settings });
+    settingsEl.style.display = "none";
+    saveBtn.style.display = "none";
+    el.querySelector("#profilestats-settings_heading_first_setup").style.display = "none";
+  });
 
   const hideFailedCb = el.querySelector("#profilestats-settings_checkbox_hide_failed");
   hideFailedCb.checked = settings.hideFailed;
