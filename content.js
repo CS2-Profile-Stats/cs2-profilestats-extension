@@ -362,7 +362,18 @@ function createLockerSkin(skin, currency) {
 }
 
 function createTemplate(logos, uiIcons) {
-  const { steamLogo, leetifyLogo, leetifyBadge, csstatsLogo, faceitLogo, cs2lockerLogo, cs2lockerBadge, csrepLogo, steamidLogo, csfloatLogo, steamhistoryLogo } = logos;
+  const {
+    steamLogo,
+    leetifyLogo, leetifyBadge,
+    csstatsLogo,
+    faceitLogo,
+    cs2lockerLogo, cs2lockerBadge,
+    csrepLogo,
+    steamidLogo,
+    csfloatLogo,
+    steamhistoryLogo,
+    steamdbLogo
+  } = logos;
   const { settings, chevronUp, chevronDown } = uiIcons;
 
   const template = document.createElement("template");
@@ -375,6 +386,7 @@ function createTemplate(logos, uiIcons) {
           <a id="profilestats-links_csrep" target="_blank" title="CSRep.gg"><img src="${csrepLogo}"/></a>
           <a id="profilestats-links_steamid" target="_blank" title="SteamID.io"><img src="${steamidLogo}"/></a>
           <a id="profilestats-links_steamhistory" target="_blank" title="SteamHistory"><img src="${steamhistoryLogo}"/></a>
+          <a id="profilestats-links_steamdb" target="_blank" title="SteamDB"><img src="${steamdbLogo}"/></a>
           <a id="profilestats-links_csfloat" target="_blank" title="CSFloat Stall"><img src="${csfloatLogo}"/></a>
         </div>
         </div>
@@ -384,6 +396,89 @@ function createTemplate(logos, uiIcons) {
         </div>
       </div>
       <div class="profile_customization_block">
+        <div data-screenshot="hidden" class="showcase_content_bg profilestats-settings" style="display: none">
+          <div class="profilestats-header">
+            <div class="profilestats-header_start">
+              <span id="profilestats-settings_heading">Settings</span>
+              <button id="profilestats-button-screenshot">Enable screenshot mode</button>
+              <button id="profilestats-button-edit">Toggle edit order</button>
+            </div>
+          </div>
+          <div id="profilestats-settings_content">
+            <div id="profilestats-settings_details">
+              <div class="profilestats-settings_category">
+                <div class="profilestats-settings_category_heading">
+                  <span>Visibility</span>
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_steam">
+                    <span class="profilestats-settings_label_label">Steam</span>
+                    <span class="profilestats-settings_label_desc">Shows some useful Steam information like SteamID, creation date and CS2 hours on record.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_steam" checked>
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_leetify">
+                    <span class="profilestats-settings_label_label">Leetify</span>
+                    <span class="profilestats-settings_label_desc">Shows statistics from Leetify including all possible ranks.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_leetify" checked>
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_csstats">
+                    <span class="profilestats-settings_label_label">CSStats</span>
+                    <span class="profilestats-settings_label_desc">Shows statistics from CSStats.gg including all possible ranks.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_csstats" checked>
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_faceit">
+                    <span class="profilestats-settings_label_label">Faceit</span>
+                    <span class="profilestats-settings_label_desc">Shows CS2 and CS:GO Faceit statistics for chosen amount of matches.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_faceit" checked>
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_cs2locker">
+                    <span class="profilestats-settings_label_label">CS2Locker</span>
+                    <span class="profilestats-settings_label_desc">Shows total inventory value and 5 most expensive skins.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_cs2locker" checked>
+                </div>
+              </div>
+
+              <div class="profilestats-settings_category">
+                <div class="profilestats-settings_category_heading">
+                  <span>Preferences</span>
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_compact">
+                    <span class="profilestats-settings_label_label">Compact mode</span>
+                    <span class="profilestats-settings_label_desc">Displays only the most useful statistics to take less space.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_compact">
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_collapsed">
+                    <span class="profilestats-settings_label_label">Start collapsed</span>
+                    <span class="profilestats-settings_label_desc">Every time profile stats are loaded, only the header is visible.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_collapsed">
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_hide_failed">
+                    <span class="profilestats-settings_label_label">Hide failed</span>
+                    <span class="profilestats-settings_label_desc">Hides sections that failed to load.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_hide_failed">
+                </div>
+              </div>
+            </div>
+            <div id="profilestats-settings_save">
+              <button id="profilestats-settings_save_button">Save settings</button>
+            </div>
+          <div>
+        </div>
         <div class="showcase_content_bg profilestats-steam">
           <div class="profilestats-header">
             <div class="profilestats-header_start">
@@ -614,46 +709,6 @@ function createTemplate(logos, uiIcons) {
             </div>
           </div>
         </div>
-        <div data-screenshot="hidden" class="showcase_content_bg profilestats-settings" style="display: none">
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-show_steam">Show Steam</label>
-            <input type="checkbox" id="profilestats-checkbox-show_steam" checked>
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-show_leetify">Show Leetify</label>
-            <input type="checkbox" id="profilestats-checkbox-show_leetify" checked>
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-show_csstats">Show CSStats</label>
-            <input type="checkbox" id="profilestats-checkbox-show_csstats" checked>
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-show_faceit">Show Faceit</label>
-            <input type="checkbox" id="profilestats-checkbox-show_faceit" checked>
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-show_cs2locker">Show CS2Locker</label>
-            <input type="checkbox" id="profilestats-checkbox-show_cs2locker">
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-collapsed">Start collapsed</label>
-            <input type="checkbox" id="profilestats-checkbox-collapsed">
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-compact">Compact mode</label>
-            <input type="checkbox" id="profilestats-checkbox-compact">
-          </div>
-          <div class="profilestats-checkbox">
-            <label for="profilestats-checkbox-failed">Hide failed</label>
-            <input type="checkbox" id="profilestats-checkbox-failed">
-          </div>
-          <div class="profilestats-button">
-            <button id="profilestats-button-screenshot">Enable screenshot mode</button>
-          </div>
-          <div class="profilestats-button">
-            <button id="profilestats-button-edit">Toggle edit order</button>
-          </div>
-        </div>
       </div>
     </div>
   `;
@@ -781,6 +836,7 @@ function fillLinks(clone, steamId64) {
   clone.querySelector("#profilestats-links_csrep").href = `https://csteamcommunity.com/profiles/${steamId64}`
   clone.querySelector("#profilestats-links_steamid").href = `https://steamid.io/lookup/${steamId64}`
   clone.querySelector("#profilestats-links_steamhistory").href = `https://steamhistory.net/id/${steamId64}`
+  clone.querySelector("#profilestats-links_steamdb").href = `https://steamdb.info/calculator/${steamId64}`
   clone.querySelector("#profilestats-links_csfloat").href = `https://csfloat.com/stall/${steamId64}`
 
   clone.querySelector("#profilestats-steam_category_logo").href = `https://steamcommunity.com/profiles/${steamId64}`;
@@ -1232,14 +1288,22 @@ function createStyles() {
     .profilestats-cs2locker_skin_name:hover { text-decoration: underline }
     .profilestats-dropdown > select { color: #c4c4c4; }
     .profilestats-dropdown > select > option { color: #c4c4c4; background: #222222; }
-    .profilestats-settings { display: flex; flex-direction: row; align-items: center; justify-content: end; gap: 5px; flex-wrap: wrap; }
     .profilestats-checkbox { display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 3px; }
     .profilestats-checkbox > label { margin-right: 0 }
 
-    @media (orientation: portrait) {
-      .profilestats-ranks { flex-direction: column }
-      .profilestats-ranks > div { width: 100%; box-sizing: border-box; }
-    }
+
+    .profilestats-settings button { background: rgba(0,0,0,0.3); border: none; color: #c4c4c4; height: 30px; cursor: pointer; }
+    .profilestats-settings button:hover { filter: brightness(0.8); }
+    #profilestats-settings_heading { font-size: 20px; color: white; }
+    #profilestats-settings_details { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; }
+    #profilestats-settings_content { display: flex; flex-direction: column; gap: 10px; }
+    .profilestats-settings_category { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; width: max-content; flex: 1; }
+    .profilestats-settings_checkbox { display: contents; }
+    .profilestats-settings_checkbox > label { margin: 0; display: flex; flex-direction: column; }
+    .profilestats-settings_checkbox > input { height: 18px; width: 18px; }
+    .profilestats-settings_label_label { font-size: 14px; color: white; }
+    .profilestats-settings_category_heading { grid-column: 1/-1; }
+    .profilestats-settings_category_heading > span { color: white; font-size: 16px; }
 
     .profilestats-compact [data-compact="hidden"] { display: none !important; }
     .profilestats-compact #profilestats-leetify_content > .profilestats-details { grid-template-columns: repeat(6, 1fr) !important; }
@@ -1252,7 +1316,6 @@ function createStyles() {
 }
 
 async function setupSettings(el, fetchers) {
-
   const settingsBtn = el.querySelector(".profilestats-settings_button");
   const settingsEl = el.querySelector(".profilestats-settings");
 
@@ -1273,19 +1336,31 @@ async function setupSettings(el, fetchers) {
     hideFailed: false,
   };
 
-  const failedCb = el.querySelector("#profilestats-checkbox-failed");
-  failedCb.checked = settings.hideFailed;
+  const hideFailedCb = el.querySelector("#profilestats-settings_checkbox_hide_failed");
+  hideFailedCb.checked = settings.hideFailed;
   el.classList.toggle("profilestats-hide-failed", settings.hideFailed);
 
-  failedCb.addEventListener("change", async () => {
-    settings.hideFailed = failedCb.checked;
-    el.classList.toggle("profilestats-hide-failed", failedCb.checked);
+  hideFailedCb.addEventListener("change", () => {
+    settings.hideFailed = hideFailedCb.checked;
+    el.classList.toggle("profilestats-hide-failed", hideFailedCb.checked);
+  });
+
+  el.querySelector("#profilestats-button-screenshot").addEventListener("click", () => {
+    el.classList.toggle("profilestats-screenshot");
+  });
+
+  el.querySelector("#profilestats-button-edit").addEventListener("click", () => {
+    el.classList.toggle("profilestats-edit");
+  });
+
+  el.querySelector("#profilestats-settings_save_button").addEventListener("click", async () => {
     await chrome.storage.local.set({ "profilestats:settings": settings });
+    settingsEl.style.display = "none";
   });
 
   const block = el.querySelector(".profile_customization_block");
   const collapseBtn = el.querySelector(".profilestats-collapse_button");
-  const collapseCb = el.querySelector("#profilestats-checkbox-collapsed");
+  const collapseCb = el.querySelector("#profilestats-settings_checkbox_collapsed");
 
   collapseCb.checked = settings.startCollapsed;
 
@@ -1294,9 +1369,8 @@ async function setupSettings(el, fetchers) {
     collapseBtn.textContent = "▼";
   }
 
-  collapseCb.addEventListener("change", async () => {
+  collapseCb.addEventListener("change", () => {
     settings.startCollapsed = collapseCb.checked;
-    await chrome.storage.local.set({ "profilestats:settings": settings });
   });
 
   collapseBtn.addEventListener("click", () => {
@@ -1305,34 +1379,22 @@ async function setupSettings(el, fetchers) {
     block.style.display = isCollapsed ? "block" : "none";
   });
 
-  const screenshotBtn = el.querySelector("#profilestats-button-screenshot")
-  screenshotBtn.addEventListener("click", () => {
-    el.classList.toggle("profilestats-screenshot")
-  })
-
-  const editBtn = el.querySelector("#profilestats-button-edit")
-  editBtn.addEventListener("click", () => {
-    el.classList.toggle("profilestats-edit")
-  })
-
-  const compactCb = el.querySelector("#profilestats-checkbox-compact");
+  const compactCb = el.querySelector("#profilestats-settings_checkbox_compact");
   compactCb.checked = settings.compactMode;
+  el.classList.toggle("profilestats-compact", settings.compactMode);
 
-  el.classList.toggle("profilestats-compact", settings.compactMode)
-
-  compactCb.addEventListener("change", async () => {
+  compactCb.addEventListener("change", () => {
     settings.compactMode = compactCb.checked;
-    el.classList.toggle("profilestats-compact", compactCb.checked)
-    await chrome.storage.local.set({ "profilestats:settings": settings });
+    el.classList.toggle("profilestats-compact", compactCb.checked);
   });
 
   const visibilityItems = [
-    { id: "profilestats-checkbox-show_steam", key: "showSteam", element: ".profilestats-steam" },
-    { id: "profilestats-checkbox-show_leetify", key: "showLeetify", element: ".profilestats-leetify" },
-    { id: "profilestats-checkbox-show_csstats", key: "showCSStats", element: ".profilestats-csstats" },
-    { id: "profilestats-checkbox-show_faceit", key: "showFaceit", element: ".profilestats-faceit" },
-    { id: "profilestats-checkbox-show_cs2locker", key: "showCS2Locker", element: ".profilestats-cs2locker" },
-  ]
+    { id: "profilestats-settings_checkbox_steam",     key: "showSteam",     element: ".profilestats-steam" },
+    { id: "profilestats-settings_checkbox_leetify",   key: "showLeetify",   element: ".profilestats-leetify" },
+    { id: "profilestats-settings_checkbox_csstats",   key: "showCSStats",   element: ".profilestats-csstats" },
+    { id: "profilestats-settings_checkbox_faceit",    key: "showFaceit",    element: ".profilestats-faceit" },
+    { id: "profilestats-settings_checkbox_cs2locker", key: "showCS2Locker", element: ".profilestats-cs2locker" },
+  ];
 
   visibilityItems.forEach(({ id, key, element }) => {
     const checkbox = el.querySelector(`#${id}`);
@@ -1345,11 +1407,10 @@ async function setupSettings(el, fetchers) {
     // only fetch if visible
     if (checkbox.checked) fetchers[key]?.();
 
-    checkbox.addEventListener("change", async () => {
+    checkbox.addEventListener("change", () => {
       settings[key] = checkbox.checked;
       section.style.display = checkbox.checked ? "" : "none";
       if (checkbox.checked) fetchers[key]?.();
-      await chrome.storage.local.set({ "profilestats:settings": settings });
     });
   });
 }
@@ -1419,7 +1480,8 @@ async function renderStats(el, head) {
     csrepLogo: chrome.runtime.getURL("assets/logos/csrep_logo.png"),
     steamidLogo: chrome.runtime.getURL("assets/logos/steamid_logo.png"),
     csfloatLogo: chrome.runtime.getURL("assets/logos/csfloat_logo.png"),
-    steamhistoryLogo: chrome.runtime.getURL("assets/logos/steamhistory_logo.png")
+    steamhistoryLogo: chrome.runtime.getURL("assets/logos/steamhistory_logo.png"),
+    steamdbLogo: chrome.runtime.getURL("assets/logos/steamdb_logo.png"),
   };
 
   const uiIcons = {
