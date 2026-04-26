@@ -474,10 +474,7 @@ function createTemplate(logos, uiIcons) {
                 </div>
               </div>
             </div>
-            <div id="profilestats-settings_save">
-              <button id="profilestats-settings_save_button">Save settings</button>
-            </div>
-          <div>
+          </div>
         </div>
         <div class="showcase_content_bg profilestats-steam">
           <div class="profilestats-header">
@@ -1343,6 +1340,7 @@ async function setupSettings(el, fetchers) {
   hideFailedCb.addEventListener("change", () => {
     settings.hideFailed = hideFailedCb.checked;
     el.classList.toggle("profilestats-hide-failed", hideFailedCb.checked);
+    chrome.storage.local.set({ "profilestats:settings": settings })
   });
 
   el.querySelector("#profilestats-button-screenshot").addEventListener("click", () => {
@@ -1351,11 +1349,6 @@ async function setupSettings(el, fetchers) {
 
   el.querySelector("#profilestats-button-edit").addEventListener("click", () => {
     el.classList.toggle("profilestats-edit");
-  });
-
-  el.querySelector("#profilestats-settings_save_button").addEventListener("click", async () => {
-    await chrome.storage.local.set({ "profilestats:settings": settings });
-    settingsEl.style.display = "none";
   });
 
   const block = el.querySelector(".profile_customization_block");
@@ -1371,6 +1364,7 @@ async function setupSettings(el, fetchers) {
 
   collapseCb.addEventListener("change", () => {
     settings.startCollapsed = collapseCb.checked;
+    chrome.storage.local.set({ "profilestats:settings": settings })
   });
 
   collapseBtn.addEventListener("click", () => {
@@ -1386,6 +1380,7 @@ async function setupSettings(el, fetchers) {
   compactCb.addEventListener("change", () => {
     settings.compactMode = compactCb.checked;
     el.classList.toggle("profilestats-compact", compactCb.checked);
+    chrome.storage.local.set({ "profilestats:settings": settings })
   });
 
   const visibilityItems = [
@@ -1411,6 +1406,7 @@ async function setupSettings(el, fetchers) {
       settings[key] = checkbox.checked;
       section.style.display = checkbox.checked ? "" : "none";
       if (checkbox.checked) fetchers[key]?.();
+      chrome.storage.local.set({ "profilestats:settings": settings })
     });
   });
 }
