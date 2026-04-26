@@ -1022,7 +1022,7 @@ function fillCSStats(clone, csStatsData) {
   clone.querySelector("#profilestats-csstats_matches").textContent = stats.matches ?? "-"
 
   const winRate = stats.win_rate
-  clone.querySelector("#profilestats-csstats_win_rate").textContent = `${winRate ? winRate + "%" : "-"}`
+  clone.querySelector("#profilestats-csstats_win_rate").textContent = `${winRate != null ? winRate + "%" : "-"}`
 
   const hs = stats.hs_percentage
   clone.querySelector("#profilestats-csstats_hs_percentage").textContent = hs != null ? `${hs}%` : "-"
@@ -1030,7 +1030,7 @@ function fillCSStats(clone, csStatsData) {
   clone.querySelector("#profilestats-csstats_adr").textContent = stats.adr ?? "-"
 
   const clutching = stats.clutch
-  clone.querySelector("#profilestats-csstats_clutching").textContent = `${clutching ? clutching + "%" : "-"}`
+  clone.querySelector("#profilestats-csstats_clutching").textContent = `${clutching != null ? clutching + "%" : "-"}`
 
   clone.querySelector("#profilestats-csstats_most_played").textContent = stats.most_played_map ?? "-"
 
