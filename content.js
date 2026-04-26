@@ -1422,6 +1422,7 @@ async function setupUpDown(el) {
   const order = saved["profilestats:order"];
   if (order?.length) {
     order.forEach(sectionClass => {
+      if (sectionClass === "profilestats-settings") return;
       const section = block.querySelector(`.${sectionClass}`);
       if (section) block.appendChild(section);
     });
@@ -1431,7 +1432,8 @@ async function setupUpDown(el) {
     [...section.classList].find(c => c.startsWith("profilestats-") && c !== "showcase_content_bg");
 
   const saveOrder = async () => {
-    const sections = [...block.querySelectorAll(".showcase_content_bg")];
+    const sections = [...block.querySelectorAll(".showcase_content_bg")]
+      .filter(s => !s.classList.contains("profilestats-settings"));
     const order = sections.map(getSectionId);
     await chrome.storage.local.set({ "profilestats:order": order });
   };
