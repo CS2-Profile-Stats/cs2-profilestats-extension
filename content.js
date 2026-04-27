@@ -509,6 +509,7 @@ function createTemplate(logos, uiIcons) {
             <div id="profilestats-steam_details">
               <div>Created: <span id="profilestats-steam_registered"></span></div>
               <div>CS2 Playtime: <span id="profilestats-steam_cs2_playtime"></span></div>
+              <div>CS2 Friend code: <span id="profilestats-steam_cs2_friendcode"></span></div>
             </div>
           </div>
         </div>
@@ -892,6 +893,8 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   } else {
     playtimeEl.textContent = `${isGamesPrivate || playtime == null ? "Private" : "-"}`;
   }
+
+  clone.querySelector("#profilestats-steam_cs2_friendcode").textContent = `${steamData.cs2_friend_code ?? "-"}`
 }
 
 function fillLeetify(clone, leetifyData) {
