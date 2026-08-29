@@ -530,10 +530,17 @@ function createTemplate(logos, uiIcons) {
                 </div>
                 <div class="profilestats-settings_checkbox">
                   <label for="profilestats-settings_checkbox_hide_failed">
-                    <span class="profilestats-settings_label_label">Hide failed</span>
+                    <span class="profilestats-settings_label_label">Hide failed sections</span>
                     <span class="profilestats-settings_label_desc">Hides sections that failed to load.</span>
                   </label>
                   <input type="checkbox" id="profilestats-settings_checkbox_hide_failed">
+                </div>
+                <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_hide_failed_stats">
+                    <span class="profilestats-settings_label_label">Hide failed stats</span>
+                    <span class="profilestats-settings_label_desc">Hides singular stats that failed to load.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_hide_failed_stats">
                 </div>
               </div>
             </div>
@@ -922,6 +929,17 @@ function fillLinks(clone, steamId64) {
     `https://cs2locker.com/inventory-value?steamId=${steamId64}&utm_source=cs2-profile-stats`;
 }
 
+function setStat(container, id, value, format = (v) => v) {
+  const span = container.querySelector(`#${id}`);
+  const values = Array.isArray(value) ? value : [value];
+  const failed = values.every((v) => v == null);
+  const safeValues = values.map((v) => (v == null ? "-" : v));
+  span.textContent = failed
+    ? "-"
+    : format(values.length === 1 ? safeValues[0] : safeValues);
+  span.closest("div")?.toggleAttribute("data-stat-failed", failed);
+}
+
 function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   if (!steamData || steamData.error) {
     clone.querySelector("#profilestats-steam_content").textContent =
@@ -950,30 +968,35 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
     banEl.style.display = "none";
   }
 
-  const registered = steamData.registered;
-  if (registered != null) {
-    clone.querySelector("#profilestats-steam_registered").textContent =
-      `${formatDate(getTimeDiff(registered))} ago`;
-  } else {
-    clone.querySelector("#profilestats-steam_registered").textContent = "-";
-  }
+  setStat(
+    clone,
+    "profilestats-steam_registered",
+    steamData.registered,
+    (v) => `${formatDate(getTimeDiff(v))} ago`,
+  );
 
   const playtime = steamData.cs2_playtime;
   const playtime2Weeks = steamData.cs2_playtime_2weeks;
   const playtimeEl = clone.querySelector("#profilestats-steam_cs2_playtime");
 
+  // doesn't really work with setStat, maybe a subject to change
   if (playtime != null && playtime > 0) {
     const formattedPlaytime = new Intl.NumberFormat("en-US").format(playtime);
     const formattedPlaytime2Weeks = new Intl.NumberFormat("en-US").format(
       playtime2Weeks,
     );
     playtimeEl.textContent = `${formattedPlaytime}h (${formattedPlaytime2Weeks}h past 2 weeks)`;
+    playtimeEl.closest("div")?.removeAttribute("data-stat-failed");
   } else {
     playtimeEl.textContent = `${isGamesPrivate || playtime == null ? "Private" : "-"}`;
+    playtimeEl.closest("div")?.setAttribute("data-stat-failed", "");
   }
 
-  clone.querySelector("#profilestats-steam_cs2_friendcode").textContent =
-    `${steamData.cs2_friend_code ?? "-"}`;
+  setStat(
+    clone,
+    "profilestats-steam_cs2_friendcode",
+    steamData.cs2_friend_code,
+  );
 }
 
 function fillLeetify(clone, leetifyData) {
@@ -1001,8 +1024,7 @@ function fillLeetify(clone, leetifyData) {
 
   const stats = leetifyData.stats;
 
-  clone.querySelector("#profilestats-leetify_kd_ratio").textContent =
-    `${stats.kd_ratio ?? "-"}`;
+  setStat(clone, "profilestats-leetify_kd_ratio", stats.kd_ratio);
 
   const premierRating = stats.premier_rating;
 
@@ -1012,42 +1034,44 @@ function fillLeetify(clone, leetifyData) {
 
   clone.querySelector("#profilestats-leetify_name").textContent =
     `${leetifyData.name ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_matches").textContent =
-    `${stats.matches ?? "-"}`;
 
-  const rating = stats.leetify_rating ?? "-";
-  clone.querySelector("#profilestats-leetify_leetify_rating").textContent =
-    rating;
+  setStat(clone, "profilestats-leetify_matches", stats.matches);
 
-  const firstMatch = stats.first_match;
-  const formattedFirstMatch = `${firstMatch != null ? formatDate(getTimeDiff(firstMatch)) : "-"} ago`;
-  clone.querySelector("#profilestats-leetify_first_match").textContent =
-    formattedFirstMatch;
+  setStat(clone, "profilestats-leetify_leetify_rating", stats.leetify_rating);
 
-  const winRate = stats.win_rate;
-  clone.querySelector("#profilestats-leetify_win_rate").textContent =
-    winRate != null ? `${winRate}%` : "-";
-  clone.querySelector("#profilestats-leetify_aim_rating").textContent =
-    `${stats.aim_rating ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_positioning").textContent =
-    `${stats.positioning ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_utility").textContent =
-    `${stats.utility ?? "-"}`;
+  setStat(
+    clone,
+    "profilestats-leetify_first_match",
+    stats.first_match,
+    (v) => `${formatDate(getTimeDiff(v))} ago`,
+  );
 
-  const clutching = stats.clutching;
-  clone.querySelector("#profilestats-leetify_clutching").textContent =
-    clutching != null ? (clutching > 0 ? `+${clutching}` : clutching) : "-";
+  setStat(
+    clone,
+    "profilestats-leetify_win_rate",
+    stats.win_rate,
+    (v) => `${v}%`,
+  );
 
-  const opening = stats.opening;
-  clone.querySelector("#profilestats-leetify_opening").textContent =
-    opening != null ? (opening > 0 ? `+${opening}` : opening) : "-";
+  setStat(clone, "profilestats-leetify_aim_rating", stats.aim_rating);
+  setStat(clone, "profilestats-leetify_positioning", stats.positioning);
+  setStat(clone, "profilestats-leetify_utility", stats.utility);
+  setStat(clone, "profilestats-leetify_clutching", stats.clutching);
+  setStat(clone, "profilestats-leetify_opening", stats.opening);
 
-  const preaim = stats.preaim_angle;
-  const reaction = stats.reaction_time;
-  clone.querySelector("#profilestats-leetify_preaim_angle").textContent =
-    preaim != null ? `${preaim}°` : "-";
-  clone.querySelector("#profilestats-leetify_reaction_time").textContent =
-    reaction != null ? `${reaction}ms` : "-";
+  setStat(
+    clone,
+    "profilestats-leetify_preaim_angle",
+    stats.preaim_angle,
+    (v) => `${v}°`,
+  );
+
+  setStat(
+    clone,
+    "profilestats-leetify_reaction_time",
+    stats.reaction_time,
+    (v) => `${v}ms`,
+  );
 
   const compRanks = stats.competitive_ranks ?? [];
   const wingmanRank = stats.wingman_rank;
@@ -1143,30 +1167,34 @@ function fillCSStats(clone, csStatsData) {
     ).style.display = "none";
   }
 
-  clone.querySelector("#profilestats-csstats_kd_ratio").textContent =
-    stats.kd_ratio ?? "-";
-  clone.querySelector("#profilestats-csstats_hltv").textContent =
-    stats.hltv_rating ?? "-";
-  clone.querySelector("#profilestats-csstats_matches").textContent =
-    stats.matches ?? "-";
+  setStat(clone, "profilestats-csstats_kd_ratio", stats.kd_ratio);
+  setStat(clone, "profilestats-csstats_hltv", stats.hltv_rating);
+  setStat(clone, "profilestats-csstats_matches", stats.matches);
 
-  const winRate = stats.win_rate;
-  clone.querySelector("#profilestats-csstats_win_rate").textContent =
-    `${winRate != null ? winRate + "%" : "-"}`;
+  setStat(
+    clone,
+    "profilestats-csstats_win_rate",
+    stats.win_rate,
+    (v) => `${v}%`,
+  );
 
-  const hs = stats.hs_percentage;
-  clone.querySelector("#profilestats-csstats_hs_percentage").textContent =
-    hs != null ? `${hs}%` : "-";
+  setStat(
+    clone,
+    "profilestats-csstats_hs_percentage",
+    stats.hs_percentage,
+    (v) => `${v}%`,
+  );
 
-  clone.querySelector("#profilestats-csstats_adr").textContent =
-    stats.adr ?? "-";
+  setStat(clone, "profilestats-csstats_adr", stats.adr);
 
-  const clutching = stats.clutch;
-  clone.querySelector("#profilestats-csstats_clutching").textContent =
-    `${clutching != null ? clutching + "%" : "-"}`;
+  setStat(
+    clone,
+    "profilestats-csstats_clutching",
+    stats.clutch,
+    (v) => `${v}%`,
+  );
 
-  clone.querySelector("#profilestats-csstats_most_played").textContent =
-    stats.most_played_map ?? "-";
+  setStat(clone, "profilestats-csstats_most_played", stats.most_played_map);
 
   const compRanks = stats.competitive_ranks ?? [];
   const wingman = stats.wingman;
@@ -1288,40 +1316,50 @@ function fillFaceit(clone, faceitData) {
     clone.querySelector("#profilestats-faceit_registered").textContent = "-";
   }
 
-  const eloEl = clone.querySelector("#profilestats-faceit_elo");
-  eloEl.textContent = faceitData.elo ?? "-";
-  eloEl.style.color = getFaceitColor(level);
+  setStat(clone, "profilestats-faceit_elo", faceitData.elo);
+  clone.querySelector("#profilestats-faceit_elo").style.color =
+    getFaceitColor(level);
 
-  clone.querySelector("#profilestats-faceit_matches").textContent =
-    stats.matches ?? "-";
-  clone.querySelector("#profilestats-faceit_kd_ratio").textContent =
-    stats.kd_ratio ?? "-";
+  setStat(clone, "profilestats-faceit_matches", stats.matches);
+  setStat(clone, "profilestats-faceit_kd_ratio", stats.kd_ratio);
 
-  const hs = stats.hs_percentage;
-  clone.querySelector("#profilestats-faceit_hs_percentage").textContent =
-    hs != null ? `${hs}%` : "-";
+  setStat(
+    clone,
+    "profilestats-faceit_hs_percentage",
+    stats.hs_percentage,
+    (v) => `${v}%`,
+  );
+  setStat(
+    clone,
+    "profilestats-faceit_win_rate",
+    stats.win_rate,
+    (v) => `${v}%`,
+  );
 
-  const winRate = stats.win_rate;
-  clone.querySelector("#profilestats-faceit_win_rate").textContent =
-    winRate != null ? `${winRate}%` : "-";
+  setStat(
+    clone,
+    "profilestats-faceit_avg_kda",
+    [stats.avg_kills, stats.avg_deaths, stats.avg_assists],
+    ([k, d, a]) => `${k}/${d}/${a}`,
+  );
 
-  const avgKills = stats.avg_kills ?? "-";
-  const avgDeaths = stats.avg_deaths ?? "-";
-  const avgAssists = stats.avg_assists ?? "-";
-  clone.querySelector("#profilestats-faceit_avg_kda").textContent =
-    `${avgKills}/${avgDeaths}/${avgAssists}`;
+  setStat(
+    clone,
+    "profilestats-faceit_last_match",
+    faceitData.last_match,
+    (v) => `${formatLastMatchDate(v)}`,
+  );
 
-  const lastMatch = faceitData.last_match;
-  const formattedLastMatch =
-    lastMatch != null ? formatLastMatchDate(lastMatch) : "-";
-  clone.querySelector("#profilestats-faceit_last_match").textContent =
-    formattedLastMatch;
-
+  // doesn't work with setStat either, also subject to change
   const recentContainer = clone.querySelector(
     "#profilestats-faceit_recent_results",
   );
   const recentResults = stats.recent_results?.slice(-stats.matches);
-  if (recentResults?.length > 0) {
+  const failed = !(recentResults?.length > 0);
+
+  recentContainer.closest("div")?.toggleAttribute("data-stat-failed", failed);
+
+  if (!failed) {
     recentResults.forEach((result) => {
       const span = document.createElement("span");
       span.textContent = result;
@@ -1493,6 +1531,7 @@ function createStyles() {
 
     .profilestats-edit .profilestats-updown { display: flex !important; }
     .profilestats-hide-failed [data-failed="true"] { display: none !important; }
+    .profilestats-hide-failed-stats [data-stat-failed] { display: none !important; }
     .profilestats-screenshot [data-screenshot="hidden"] { display: none !important; }
   `;
 }
@@ -1506,9 +1545,7 @@ async function setupSettings(el, fetchers) {
     settingsEl.style.display = isVisible ? "none" : "";
   });
 
-  const saved = await chrome.storage.local.get("profilestats:settings");
-  const isFirstSetup = !saved["profilestats:settings"];
-  const settings = saved["profilestats:settings"] || {
+  const defaultSettings = {
     startCollapsed: false,
     compactMode: false,
     showSteam: true,
@@ -1517,7 +1554,17 @@ async function setupSettings(el, fetchers) {
     showFaceit: true,
     showCS2Locker: false,
     hideFailed: false,
+    hideFailedStats: true,
   };
+
+  const saved = await chrome.storage.local.get("profilestats:settings");
+
+  const settings = {
+    ...defaultSettings,
+    ...(saved["profilestats:settings"] || {}),
+  };
+
+  const isFirstSetup = !saved["profilestats:settings"];
 
   if (isFirstSetup) {
     settingsEl.style.display = "";
@@ -1552,6 +1599,24 @@ async function setupSettings(el, fetchers) {
   hideFailedCb.addEventListener("change", () => {
     settings.hideFailed = hideFailedCb.checked;
     el.classList.toggle("profilestats-hide-failed", hideFailedCb.checked);
+    chrome.storage.local.set({ "profilestats:settings": settings });
+  });
+
+  const hideFailedStatsCb = el.querySelector(
+    "#profilestats-settings_checkbox_hide_failed_stats",
+  );
+  hideFailedStatsCb.checked = settings.hideFailedStats;
+  el.classList.toggle(
+    "profilestats-hide-failed-stats",
+    settings.hideFailedStats,
+  );
+
+  hideFailedStatsCb.addEventListener("change", () => {
+    settings.hideFailedStats = hideFailedStatsCb.checked;
+    el.classList.toggle(
+      "profilestats-hide-failed-stats",
+      hideFailedStatsCb.checked,
+    );
     chrome.storage.local.set({ "profilestats:settings": settings });
   });
 
