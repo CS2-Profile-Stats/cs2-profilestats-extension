@@ -999,6 +999,10 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   );
 }
 
+function formatLeetifyRating(rating) {
+  return `${rating >= 0 ? "+" : ""}${rating.toFixed(2)}`;
+}
+
 function fillLeetify(clone, leetifyData) {
   if (!leetifyData || leetifyData.error) {
     const message =
@@ -1022,7 +1026,12 @@ function fillLeetify(clone, leetifyData) {
 
   const stats = leetifyData.stats;
 
-  setStat(clone, "profilestats-leetify_kd_ratio", stats.kd_ratio);
+  setStat(
+    clone,
+    "profilestats-leetify_kd_ratio",
+    stats.kd_ratio,
+    (v) => `${v.toFixed(2)}`,
+  );
 
   const premierRating = stats.premier_rating;
 
@@ -1035,7 +1044,12 @@ function fillLeetify(clone, leetifyData) {
 
   setStat(clone, "profilestats-leetify_matches", stats.matches);
 
-  setStat(clone, "profilestats-leetify_leetify_rating", stats.leetify_rating);
+  setStat(
+    clone,
+    "profilestats-leetify_leetify_rating",
+    stats.leetify_rating,
+    (v) => `${formatLeetifyRating(v)}`,
+  );
 
   setStat(
     clone,
@@ -1054,14 +1068,26 @@ function fillLeetify(clone, leetifyData) {
   setStat(clone, "profilestats-leetify_aim_rating", stats.aim_rating);
   setStat(clone, "profilestats-leetify_positioning", stats.positioning);
   setStat(clone, "profilestats-leetify_utility", stats.utility);
-  setStat(clone, "profilestats-leetify_clutching", stats.clutching);
-  setStat(clone, "profilestats-leetify_opening", stats.opening);
+
+  setStat(
+    clone,
+    "profilestats-leetify_clutching",
+    stats.clutching,
+    (v) => `${v.toFixed(2)}`,
+  );
+
+  setStat(
+    clone,
+    "profilestats-leetify_opening",
+    stats.opening,
+    (v) => `${v.toFixed(2)}`,
+  );
 
   setStat(
     clone,
     "profilestats-leetify_preaim_angle",
     stats.preaim_angle,
-    (v) => `${v}°`,
+    (v) => `${v.toFixed(2)}°`,
   );
 
   setStat(
@@ -1165,8 +1191,20 @@ function fillCSStats(clone, csStatsData) {
     ).style.display = "none";
   }
 
-  setStat(clone, "profilestats-csstats_kd_ratio", stats.kd_ratio);
-  setStat(clone, "profilestats-csstats_hltv", stats.hltv_rating);
+  setStat(
+    clone,
+    "profilestats-csstats_kd_ratio",
+    stats.kd_ratio,
+    (v) => `${v.toFixed(2)}`,
+  );
+
+  setStat(
+    clone,
+    "profilestats-csstats_hltv",
+    stats.hltv_rating,
+    (v) => `${v.toFixed(2)}`,
+  );
+
   setStat(clone, "profilestats-csstats_matches", stats.matches);
 
   setStat(
@@ -1321,7 +1359,13 @@ function fillFaceit(clone, faceitData) {
     getFaceitColor(level);
 
   setStat(clone, "profilestats-faceit_matches", stats.matches);
-  setStat(clone, "profilestats-faceit_kd_ratio", stats.kd_ratio);
+
+  setStat(
+    clone,
+    "profilestats-faceit_kd_ratio",
+    stats.kd_ratio,
+    (v) => `${v.toFixed(2)}`,
+  );
 
   setStat(
     clone,
