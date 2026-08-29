@@ -263,8 +263,8 @@ function getTimeDiff(dateStr, mode = "ago") {
 function formatDate({ years, months }) {
   const parts = [];
   if (years > 0) parts.push(`${years}y`);
-  if (months > 0) parts.push(`${months}m`);
-  return parts.length > 0 ? parts.join(", ") : "< 1m";
+  if (months > 0) parts.push(`${months}mo`);
+  return parts.length > 0 ? parts.join(", ") : "< 1mo";
 }
 
 function formatLastMatchDate(dateStr) {
