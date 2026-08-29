@@ -226,6 +226,12 @@ async function fetchCS2Locker(steamId64) {
   );
 }
 
+async function fetchCSRepProfile(steamId64) {
+  return cachedFetch(`csrep:${steamId64}`, () =>
+    backgroundFetch(`${API_URL}/api/stats/csrep/${steamId64}`),
+  );
+}
+
 async function fetchFaceitProfile(steamId64, game = "cs2", limit = 90) {
   return cachedFetch(`faceit:${steamId64}:${game}:${limit}`, () =>
     backgroundFetch(
@@ -443,7 +449,6 @@ function createTemplate(logos, uiIcons) {
         <div id="profilestats-customization_header_start">
         CS2 Profile Stats
         <div data-screenshot="hidden" class="profilestats-links">
-          <a id="profilestats-links_csrep" target="_blank" title="CSRep.gg"><img src="${csrepLogo}"/></a>
           <a id="profilestats-links_steamid" target="_blank" title="SteamID.io"><img src="${steamidLogo}"/></a>
           <a id="profilestats-links_steamhistory" target="_blank" title="SteamHistory"><img src="${steamhistoryLogo}"/></a>
           <a id="profilestats-links_steamdb" target="_blank" title="SteamDB"><img src="${steamdbLogo}"/></a>
@@ -493,6 +498,13 @@ function createTemplate(logos, uiIcons) {
                     <span class="profilestats-settings_label_desc">Shows statistics from CSStats.gg including all possible ranks.</span>
                   </label>
                   <input type="checkbox" id="profilestats-settings_checkbox_csstats" checked>
+                </div>
+                  <div class="profilestats-settings_checkbox">
+                  <label for="profilestats-settings_checkbox_csrep">
+                    <span class="profilestats-settings_label_label">CSRep</span>
+                    <span class="profilestats-settings_label_desc">Shows statistics from CSRep including all possible ranks.</span>
+                  </label>
+                  <input type="checkbox" id="profilestats-settings_checkbox_csrep" checked>
                 </div>
                 <div class="profilestats-settings_checkbox">
                   <label for="profilestats-settings_checkbox_faceit">
@@ -678,6 +690,46 @@ function createTemplate(logos, uiIcons) {
               <div data-compact="hidden">Most played<span id="profilestats-csstats_most_played"></span></div>
             </div>
             <div class="profilestats-ranks" id="profilestats-csstats-ranks" style="display: none">
+
+            </div>
+          </div>
+        </div>
+        <div class="showcase_content_bg profilestats-csrep">
+          <div class="profilestats-header">
+            <div class="profilestats-header_start">
+              <a class="profilestats-category_logo" id="profilestats-csrep_category_logo" target="_blank">
+                <img src="${csrepLogo}"> 
+              </a> 
+              <div id="profilestats-csrep_profile">
+                <div id="profilestats-csrep_profile_header">
+                  <div id="profilestats-csrep_trust_rating_container">
+                    Trust score
+                    <span id="profilestats-csrep_trust_rating"></span>
+                    <div id="profilestats-csrep_trust_rating_gradient"></div>
+                  </div>
+                  <div id="profilestats-csrep_premier_rating_name">
+                    <div id="profilestats-csrep_premier_rating">
+
+                    </div>
+                    <div><span id="profilestats-csrep_name"></span></div>
+                  </div>
+                </div>
+              </div>
+              <button data-screenshot="hidden" class="profilestats-show_button" id="profilestats-csrep_show_button" style="display: none">Show all ranks</button>
+            </div>
+            <div class="profilestats-header_end">
+              <div data-screenshot="hidden" class="profilestats-updown" id="profilestats-csrep_updown" style="display: none">
+                <button class="profilestats-updown_button profilestats-updown_button_up">
+                  <img src="${chevronUp}"/>
+                </button>
+                <button class="profilestats-updown_button profilestats-updown_button_down">
+                  <img src="${chevronDown}"/>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="profilestats-csrep_content">
+            <div class="profilestats-ranks" id="profilestats-csrep-ranks" style="display: none">
 
             </div>
           </div>
@@ -908,8 +960,6 @@ function appendWingmanRow(grid, wingman, showBest = true) {
 }
 
 function fillLinks(clone, steamId64) {
-  clone.querySelector("#profilestats-links_csrep").href =
-    `https://csteamcommunity.com/profiles/${steamId64}`;
   clone.querySelector("#profilestats-links_steamid").href =
     `https://steamid.io/lookup/${steamId64}`;
   clone.querySelector("#profilestats-links_steamhistory").href =
@@ -919,6 +969,8 @@ function fillLinks(clone, steamId64) {
   clone.querySelector("#profilestats-links_csfloat").href =
     `https://csfloat.com/stall/${steamId64}`;
 
+  clone.querySelector("#profilestats-csrep_category_logo").href =
+    `https://csteamcommunity.com/profiles/${steamId64}`;
   clone.querySelector("#profilestats-steam_category_logo").href =
     `https://steamcommunity.com/profiles/${steamId64}`;
   clone.querySelector("#profilestats-leetify_category_logo").href =
@@ -1281,6 +1333,100 @@ function fillCSStats(clone, csStatsData) {
   showBtn.style.display = ranksEl.hasChildNodes() ? "" : "none";
 }
 
+function getTrustRatingColor(rating) {
+  if (rating >= 80) {
+    return "#0df397";
+  }
+  if (rating >= 60) {
+    return "#e3cc36";
+  }
+  if (rating >= 40) {
+    return "#d9d00";
+  }
+  if (rating >= 20) {
+    return "#ff6564";
+  }
+  return "gray";
+}
+
+function fillCSRep(clone, csRepData) {
+  if (!csRepData || csRepData.error || csRepData.redacted === true) {
+    const message =
+      csRepData.redacted === true
+        ? "CSRep profile was redacted."
+        : csRepData?.status === 404
+          ? "CSRep profile not found."
+          : "Couldn't load CSRep data.";
+    clone.querySelector("#profilestats-csrep_content").textContent = message;
+    clone.querySelector(".profilestats-csrep").dataset.failed = "true";
+    return;
+  }
+
+  const showBtn = clone.querySelector("#profilestats-csrep_show_button");
+  const ranksEl = clone.querySelector("#profilestats-csrep-ranks");
+
+  showBtn.addEventListener("click", () => {
+    const isVisible = ranksEl.style.display !== "none";
+    ranksEl.style.display = isVisible ? "none" : "";
+    showBtn.textContent = isVisible ? "Show all ranks" : "Hide all ranks";
+  });
+
+  const stats = csRepData.stats;
+
+  const trustRatingColor = getTrustRatingColor(stats.trust_rating);
+
+  const trustRatingEl = clone.querySelector("#profilestats-csrep_trust_rating");
+  trustRatingEl.textContent =
+    stats.trust_rating !== null ? `${stats.trust_rating}%` : "-";
+  trustRatingEl.style.color = trustRatingColor;
+  clone.querySelector(
+    "#profilestats-csrep_trust_rating_gradient",
+  ).style.backgroundImage = `
+    radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    color-mix(in oklab, ${trustRatingColor} 20%, transparent) 0%,
+    transparent 70%
+    )
+  `;
+
+  const premierRating = stats.premier_rating;
+
+  clone
+    .querySelector("#profilestats-csrep_premier_rating")
+    .appendChild(createPremierRating(premierRating ?? 0));
+
+  clone.querySelector("#profilestats-csrep_name").textContent =
+    csRepData.name ?? "-";
+
+  const compRanks = stats.competitive_ranks ?? [];
+
+  ranksEl.innerHTML = "";
+
+  if (compRanks.length > 0) {
+    const left = document.createElement("div");
+    left.classList.add("profilestats-ranks-left");
+    const { container, grid } = createRanksSection(
+      "Competitive",
+      ["Map", "Rank"],
+      "profilestats-csrep-ranks-competitive",
+    );
+    compRanks.forEach((rank) => {
+      grid.appendChild(
+        createRankLeft(
+          `${API_URL}/assets/map_icons/${rank.map}.svg`,
+          rank.map,
+          null,
+        ),
+      );
+      grid.appendChild(createCompRank("competitive", rank.rank));
+    });
+    left.appendChild(container);
+    ranksEl.appendChild(left);
+  }
+
+  showBtn.style.display = ranksEl.hasChildNodes() ? "" : "none";
+}
+
 function createFaceitLevel(level, ranking) {
   const img = document.createElement("img");
   img.src = getFaceitLevelImage(level, ranking);
@@ -1475,7 +1621,7 @@ function createStyles() {
     .profilestats-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; min-height: 40px; margin-bottom: 8px; }
     .profilestats-category_logo { display: flex; flex-direction: row; justify-content: start; align-items: center; background: rgba(0,0,0,0.3); height: 30px; padding: 4px; border-radius: 5px; }
     .profilestats-category_logo:hover { filter: brightness(0.8); }
-    .profilestats-category_logo > img { height: 100%; }
+    .profilestats-category_logo > img { height: 100%; z-index: 2; }
     .profilestats-updown { display: flex; flex-direction: column; justify-content: center; height: 40px }
     .profilestats-updown_button { background: none; border: none; cursor: default; height: 30%; filter: brightness(0.5); display: flex; align-items: center; justify-content: center; }
     .profilestats-updown_button:hover { filter: brightness(0.7); }
@@ -1521,6 +1667,14 @@ function createStyles() {
     .profilestats-csstart_premier_container { display: flex; flex-direction: row; gap: 5px; }
     .profilestats-csstats_premier_label { color: white; font-size: 20px; line-height: 28px; }
     #profilestats-csstats_premier_indicator { font-size: 16px; line-height: 28px; }
+    #profilestats-csrep_trust_rating_container { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #c4c4c4; line-height: 12px; position: relative; }
+    #profilestats-csrep_trust_rating { font-size: 18px; font-weight: 500; line-height: 18px }
+    #profilestats-csrep_profile_header { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+    #profilestats-csrep_premier_rating { z-index: 2 }
+    #profilestats-csrep_premier_rating_name { display: flex; flex-direction: row; align-items: center; gap: 5px; }
+    #profilestats-csrep_name { font-size: 18px; color: white; }
+    #profilestats-csrep_trust_rating_gradient { position: absolute; height: 270%; width: 270%; overflow: visible; pointer-events: none; z-index: 1; }
+    .profilestats-csrep-ranks-competitive { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px 10px; width: 100%; }
     #profilestats-faceit_profile_header { display: flex; flex-direction: row; align-items: center; gap: 5px }
     #profilestats-faceit_level { height: 36px; }
     #profilestats-faceit_level > img { height: 100%; }
@@ -1595,6 +1749,7 @@ async function setupSettings(el, fetchers) {
     showSteam: true,
     showLeetify: true,
     showCSStats: true,
+    showCSRep: false,
     showFaceit: true,
     showCS2Locker: false,
     hideFailed: false,
@@ -1727,6 +1882,11 @@ async function setupSettings(el, fetchers) {
       id: "profilestats-settings_checkbox_csstats",
       key: "showCSStats",
       element: ".profilestats-csstats",
+    },
+    {
+      id: "profilestats-settings_checkbox_csrep",
+      key: "showCSRep",
+      element: ".profilestats-csrep",
     },
     {
       id: "profilestats-settings_checkbox_faceit",
@@ -1862,6 +2022,9 @@ async function renderStats(el, head) {
   const leetifyBackup = clone.querySelector(
     "#profilestats-leetify_content",
   ).innerHTML;
+  const csRepBackup = clone.querySelector(
+    "#profilestats-csrep_content",
+  ).innerHTML;
   const csStatsBackup = clone.querySelector(
     "#profilestats-csstats_content",
   ).innerHTML;
@@ -1914,6 +2077,12 @@ async function renderStats(el, head) {
       fillLeetify,
       "#profilestats-leetify_content",
       leetifyBackup,
+    ),
+    showCSRep: fetcher(
+      fetchCSRepProfile,
+      fillCSRep,
+      "#profilestats-csrep_content",
+      csRepBackup,
     ),
     showCSStats: fetcher(
       fetchCSStatsProfile,
