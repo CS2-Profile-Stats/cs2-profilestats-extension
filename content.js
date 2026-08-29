@@ -1,7 +1,10 @@
 const API_URL = "http://localhost:8080";
 
 // cache for 5 minutes
-const CACHE_TTL = 5 * 60 * 1000;
+// const CACHE_TTL = 5 * 60 * 1000;
+
+// 1 ms for testing
+const CACHE_TTL = 1;
 
 async function cachedFetch(key, fetchFn) {
   const stored = await chrome.storage.local.get(key);
@@ -15,15 +18,18 @@ async function cachedFetch(key, fetchFn) {
   // errors shouldn't be cached
   if (data && !data.error) {
     await chrome.storage.local.set({
-      [key]: { data, timestamp: Date.now() }
+      [key]: { data, timestamp: Date.now() },
     });
   }
   return data;
 }
 
 function backgroundFetch(url, html = false) {
-  return new Promise(resolve => {
-    chrome.runtime.sendMessage({ type: html ? "fetchHtml" : "fetch", url }, resolve);
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: html ? "fetchHtml" : "fetch", url },
+      resolve,
+    );
   });
 }
 
@@ -40,39 +46,53 @@ async function fetchCSStatsProfile(steamId64) {
 
     const profile = parser.parseFromString(profileHTML, "text/html");
 
-    if (profile.querySelector("#outer-wrapper h1")?.textContent.trim() === "Private Profile") return { error: "private" };
+    if (
+      profile.querySelector("#outer-wrapper h1")?.textContent.trim() ===
+      "Private Profile"
+    )
+      return { error: "private" };
 
     if (!statsHTML) return null;
 
     const stats = parser.parseFromString(statsHTML, "text/html");
-    if (!stats.querySelector(".content-sub-nav-outer")) return { error: "not found" };
+    if (!stats.querySelector(".content-sub-nav-outer"))
+      return { error: "not found" };
 
-    const name = profile.querySelector("#player-name")?.textContent?.trim()
+    const name = profile.querySelector("#player-name")?.textContent?.trim();
 
-    const kdRatio = parseFloat(stats.querySelector("#kpd span")?.textContent?.trim())
-    const hltvRating = parseFloat(stats.querySelector("#rating span")?.textContent?.trim())
-    const mostPlayedMap = stats.querySelector("#player-maps canvas")?.id.replace("-wr-chart-canvas", "");
-
+    const kdRatio = parseFloat(
+      stats.querySelector("#kpd span")?.textContent?.trim(),
+    );
+    const hltvRating = parseFloat(
+      stats.querySelector("#rating span")?.textContent?.trim(),
+    );
+    const mostPlayedMap = stats
+      .querySelector(".maps-body .row")
+      ?.getAttribute("data-name");
     const statPanels = stats.querySelectorAll(".stat-panel");
 
     let winRate = null;
     let matches = null;
     let hsPercentage = null;
     let adr = null;
-    let clutch = null
+    let clutch = null;
 
     const getPanelValue = (panel) => {
-      const text = panel.querySelector("[style*='font-size:34px']")?.childNodes[0].textContent.trim();
+      const text = panel
+        .querySelector("[style*='font-size:34px']")
+        ?.childNodes[0].textContent.trim();
       return text ? parseInt(text) : null;
     };
 
-    statPanels.forEach(panel => {
+    statPanels.forEach((panel) => {
       const heading = panel.querySelector(".stat-heading")?.textContent.trim();
       if (!heading) return;
 
       if (heading === "Win Rate") {
         winRate = getPanelValue(panel);
-        matches = parseInt(panel.querySelector(".total-value")?.textContent.trim());
+        matches = parseInt(
+          panel.querySelector(".total-value")?.textContent.trim(),
+        );
       } else if (heading.includes("HS") && hsPercentage === null) {
         hsPercentage = getPanelValue(panel);
       } else if (heading.includes("ADR")) {
@@ -82,74 +102,92 @@ async function fetchCSStatsProfile(steamId64) {
       }
     });
 
+    // ranks
+
     const getRating = (el) => {
-      const span = el.querySelector(".cs2rating span");
+      const span = el?.querySelector(".cs2rating span");
       if (!span) return null;
       const main = span.childNodes[0].textContent.trim();
       if (main === "---") return 0;
-      const decimal = span.querySelector("small")?.textContent.trim().replace(",", "") ?? "";
+      const decimal =
+        span.querySelector("small")?.textContent.trim().replace(",", "") ?? "";
       return parseInt(main + decimal);
+    };
+
+    const getMedalRank = (el) => {
+      const src = el?.querySelector("img")?.getAttribute("src");
+      const match = src?.match(/(\d+)\.(?:png|svg)$/);
+      return match ? parseInt(match[1]) : null;
     };
 
     const premierRatings = [];
     const competitiveRanks = [];
     let wingman = null;
 
-    profile.querySelectorAll("#player-ranks .ranks").forEach(rankDiv => {
-      const icon = rankDiv.querySelector(".icon");
-      if (!icon) return;
+    profile.querySelectorAll(".rank-panel .sec").forEach((sec) => {
+      const title = sec.querySelector(".sec-h .sec-t")?.textContent.trim();
 
-      const img = icon.querySelector("img");
-      const alt = img?.getAttribute("alt") ?? "";
-      const wins = parseInt(rankDiv.querySelector(".bottom .wins b")?.textContent.trim()) || 0;
-      const rankSrc = rankDiv.querySelector(".rank img")?.getAttribute("src");
-      const bestSrc = rankDiv.querySelector(".best img")?.getAttribute("src");
+      if (title === "Premier") {
+        sec.querySelectorAll(".rk-row").forEach((row) => {
+          const seasonText = row.querySelector(".rk-l .nm")?.textContent.trim();
+          const seasonMatch = seasonText?.match(/S(\d+)/);
+          if (!seasonMatch) return;
 
-      if (alt.startsWith("Premier")) {
-        const seasonMatch = alt.match(/Season (\d+)/);
-        premierRatings.push({
-          season: seasonMatch ? parseInt(seasonMatch[1]) : 1,
-          latest_rating: getRating(rankDiv.querySelector(".rank")),
-          best_rating: getRating(rankDiv.querySelector(".best")),
-          wins,
+          const wins =
+            parseInt(row.querySelector(".rk-w")?.textContent.trim()) || 0;
+          const [current, best] = row.querySelectorAll(".rk-v");
+
+          premierRatings.push({
+            season: parseInt(seasonMatch[1]),
+            latest_rating: getRating(current),
+            best_rating: getRating(best),
+            wins,
+          });
         });
         return;
       }
 
-      if (alt === "FACEIT") return;
+      sec.querySelectorAll(".cp-det .rk-row.is-map").forEach((row) => {
+        const mapName = row.querySelector(".rk-l .mi")?.alt;
+        const wins =
+          parseInt(row.querySelector(".rk-w")?.textContent.trim()) || 0;
+        const [current, best] = row.querySelectorAll(".rk-v");
+        if (mapName) {
+          competitiveRanks.push({
+            map: mapName,
+            latest_rank: getMedalRank(current),
+            best_rank: getMedalRank(best),
+            wins,
+          });
+        }
+      });
 
-      if (alt === "Wingman") {
-        const rankMatch = rankSrc?.match(/wingman(\d+)\.svg/);
-        const bestMatch = bestSrc?.match(/wingman(\d+)\.svg/);
-        wingman = rankMatch ? {
-          latest_rank: parseInt(rankMatch[1]),
-          best_rank: bestMatch ? parseInt(bestMatch[1]) : null,
-          wins
-        } : null;
-        return;
-      }
-
-      const mapName = img ? alt : icon.textContent.trim();
-      const rankMatch = rankSrc?.match(/\/ranks\/(\d+)\.png/);
-      const bestMatch = bestSrc?.match(/\/ranks\/(\d+)\.png/);
-      if (mapName && rankMatch) {
-        competitiveRanks.push({
-          map: mapName,
-          latest_rank: parseInt(rankMatch[1]),
-          best_rank: bestMatch ? parseInt(bestMatch[1]) : null,
+      sec.querySelectorAll(".rk-row").forEach((row) => {
+        const name = row.querySelector(".rk-l .rk-n")?.textContent.trim();
+        if (name !== "Wingman") return;
+        const wins =
+          parseInt(row.querySelector(".rk-w")?.textContent.trim()) || 0;
+        const [current, best] = row.querySelectorAll(".rk-v");
+        wingman = {
+          latest_rank: getMedalRank(current),
+          best_rank: getMedalRank(best),
           wins,
-        });
-      }
+        };
+      });
     });
 
     // recent results
-    const dots = [...stats.querySelectorAll(".match-dot-outer .match-dot")].reverse().slice(0, 5);
-    const recentResults = dots.map(dot => {
-      if (dot.classList.contains("match-win")) return "W";
-      if (dot.classList.contains("match-lose")) return "L";
-      if (dot.classList.contains("match-draw")) return "T";
-      return null;
-    }).filter(Boolean);
+    const dots = [...stats.querySelectorAll(".match-dot-outer .match-dot")]
+      .reverse()
+      .slice(0, 5);
+    const recentResults = dots
+      .map((dot) => {
+        if (dot.classList.contains("match-win")) return "W";
+        if (dot.classList.contains("match-lose")) return "L";
+        if (dot.classList.contains("match-draw")) return "T";
+        return null;
+      })
+      .filter(Boolean);
 
     return {
       name: name,
@@ -173,32 +211,38 @@ async function fetchCSStatsProfile(steamId64) {
 
 async function resolveVanity(vanity) {
   return cachedFetch(`steamid:${vanity}`, async () => {
-    const data = await backgroundFetch(`${API_URL}/api/resolveVanity/${vanity}`);
+    const data = await backgroundFetch(
+      `${API_URL}/api/resolveVanity/${vanity}`,
+    );
     return data?.steam_id ?? null;
   });
 }
 
 async function fetchCS2Locker(steamId64) {
   return cachedFetch(`cs2locker:${steamId64}`, () =>
-    backgroundFetch(`https://cs2locker.com/api/quotes/embed?steamId=${steamId64}&ref=cs2-profile-stats&slim=true`)
+    backgroundFetch(
+      `https://cs2locker.com/api/quotes/embed?steamId=${steamId64}&ref=cs2-profile-stats&slim=true`,
+    ),
   );
 }
 
 async function fetchFaceitProfile(steamId64, game = "cs2", limit = 90) {
   return cachedFetch(`faceit:${steamId64}:${game}:${limit}`, () =>
-    backgroundFetch(`${API_URL}/api/stats/faceit/${steamId64}?game=${game}&limit=${limit}`)
+    backgroundFetch(
+      `${API_URL}/api/stats/faceit/${steamId64}?game=${game}&limit=${limit}`,
+    ),
   );
 }
 
 async function fetchLeetifyProfile(steamId64) {
   return cachedFetch(`leetify:${steamId64}`, () =>
-    backgroundFetch(`${API_URL}/api/stats/leetify/${steamId64}`)
+    backgroundFetch(`${API_URL}/api/stats/leetify/${steamId64}`),
   );
 }
 
 async function fetchSteamProfile(steamId64) {
   return cachedFetch(`steam:${steamId64}`, () =>
-    backgroundFetch(`${API_URL}/api/stats/steam/${steamId64}`)
+    backgroundFetch(`${API_URL}/api/stats/steam/${steamId64}`),
   );
 }
 
@@ -209,7 +253,10 @@ function getTimeDiff(dateStr, mode = "ago") {
   const to = mode === "until" ? date : now;
   let years = to.getFullYear() - from.getFullYear();
   let months = to.getMonth() - from.getMonth();
-  if (months < 0) { years--; months += 12; }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
   return { years, months };
 }
 
@@ -221,10 +268,10 @@ function formatDate({ years, months }) {
 }
 
 function formatLastMatchDate(dateStr) {
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   }).format(new Date(dateStr));
 }
 
@@ -236,28 +283,38 @@ const PREMIER_RANKS = [
   { starts: 20000, color: "#f03cff", name: "pink" },
   { starts: 25000, color: "#eb4b4b", name: "red" },
   { starts: 30000, color: "#ffd700", name: "gold" },
-]
+];
 
-function getPremierRank(rating) { return PREMIER_RANKS.findLast(t => rating >= t.starts); }
-function getPremierColor(rating) { return getPremierRank(rating).color }
-function getPremierColorName(rating) { return getPremierRank(rating).name }
-function getPremierBg(rating) { return chrome.runtime.getURL(`assets/premier_ratings/${getPremierRank(rating).name}.svg`) }
+function getPremierRank(rating) {
+  return PREMIER_RANKS.findLast((t) => rating >= t.starts);
+}
+function getPremierColor(rating) {
+  return getPremierRank(rating).color;
+}
+function getPremierColorName(rating) {
+  return getPremierRank(rating).name;
+}
+function getPremierBg(rating) {
+  return chrome.runtime.getURL(
+    `assets/premier_ratings/${getPremierRank(rating).name}.svg`,
+  );
+}
 
 function getPremierCoinProgress(wins) {
-  if (wins < 25) return ""
-  if (wins < 50) return "1"
-  if (wins < 75) return "2"
-  if (wins < 100) return "3"
-  if (wins < 125) return "4"
-  return "5"
+  if (wins < 25) return "";
+  if (wins < 50) return "1";
+  if (wins < 75) return "2";
+  if (wins < 100) return "3";
+  if (wins < 125) return "4";
+  return "5";
 }
 
 function getPremierCoin(rating, season, wins) {
-  if (wins < 25) return `${API_URL}/assets/premier_coins/${season}.png`
-  if (season === 1) return `${API_URL}/assets/premier_coins/1.png`
-  const color = getPremierColorName(rating)
-  const progress = getPremierCoinProgress(wins)
-  return `${API_URL}/assets/premier_coins/${season}_${color}_${progress}.png`
+  if (wins < 25) return `${API_URL}/assets/premier_coins/${season}.png`;
+  if (season === 1) return `${API_URL}/assets/premier_coins/1.png`;
+  const color = getPremierColorName(rating);
+  const progress = getPremierCoinProgress(wins);
+  return `${API_URL}/assets/premier_coins/${season}_${color}_${progress}.png`;
 }
 
 function getFaceitColor(level) {
@@ -273,7 +330,7 @@ function getFaceitLevelImage(level, ranking) {
   if (ranking >= 1000 || ranking === 0) {
     return chrome.runtime.getURL(`assets/faceit_levels/${level}.png`);
   } else {
-    return chrome.runtime.getURL("assets/faceit_levels/challenger.png")
+    return chrome.runtime.getURL("assets/faceit_levels/challenger.png");
   }
 }
 
@@ -292,87 +349,90 @@ async function getSteamId(url) {
 }
 
 function createLockerSkin(skin, currency) {
-  const container = document.createElement("div")
-  container.classList.add("profilestats-cs2locker_skin")
+  const container = document.createElement("div");
+  container.classList.add("profilestats-cs2locker_skin");
 
-  const inner = document.createElement("div")
-  inner.classList.add("profilestats-cs2locker_skin_inner")
+  const inner = document.createElement("div");
+  inner.classList.add("profilestats-cs2locker_skin_inner");
 
-  const innerImgContainer = document.createElement("a")
-  innerImgContainer.href = skin.inspectLink
-  innerImgContainer.target = "_blank"
+  const innerImgContainer = document.createElement("a");
+  innerImgContainer.href = skin.inspectLink;
+  innerImgContainer.target = "_blank";
 
-  const innerImg = document.createElement("img")
-  innerImg.classList.add("profilestats-cs2locker_skin_image")
-  innerImg.src = skin.iconUrl
-  innerImgContainer.appendChild(innerImg)
+  const innerImg = document.createElement("img");
+  innerImg.classList.add("profilestats-cs2locker_skin_image");
+  innerImg.src = skin.iconUrl;
+  innerImgContainer.appendChild(innerImg);
 
-  inner.appendChild(innerImgContainer)
+  inner.appendChild(innerImgContainer);
 
-  const priceTag = document.createElement("span")
-  priceTag.classList.add("profilestats-cs2locker_skin_pricetag")
-  priceTag.textContent = skin.price + currency
-  inner.appendChild(priceTag)
+  const priceTag = document.createElement("span");
+  priceTag.classList.add("profilestats-cs2locker_skin_pricetag");
+  priceTag.textContent = skin.price + currency;
+  inner.appendChild(priceTag);
 
-  const info = document.createElement("div")
-  info.classList.add("profilestats-cs2locker_skin_info")
+  const info = document.createElement("div");
+  info.classList.add("profilestats-cs2locker_skin_info");
 
   if (skin.stickers?.length > 0) {
-    const stickers = document.createElement("div")
-    stickers.classList.add("profilestats-cs2locker_stickers")
-    skin.stickers.forEach(sticker => {
-      const stickerContainer = document.createElement("a")
-      stickerContainer.classList.add("profilestats-cs2locker_sticker")
-      const stickerName = sticker.name.replace("Sticker: ", "Sticker | ")
-      stickerContainer.href = "https://steamcommunity.com/market/listings/730/" + stickerName
-      stickerContainer.title = stickerName
-      stickerContainer.target = "_blank"
+    const stickers = document.createElement("div");
+    stickers.classList.add("profilestats-cs2locker_stickers");
+    skin.stickers.forEach((sticker) => {
+      const stickerContainer = document.createElement("a");
+      stickerContainer.classList.add("profilestats-cs2locker_sticker");
+      const stickerName = sticker.name.replace("Sticker: ", "Sticker | ");
+      stickerContainer.href =
+        "https://steamcommunity.com/market/listings/730/" + stickerName;
+      stickerContainer.title = stickerName;
+      stickerContainer.target = "_blank";
 
-      const stickerImg = document.createElement("img")
-      stickerImg.classList.add("profilestats-cs2locker_sticker_image")
-      stickerImg.src = sticker.imageUrl
-      stickerContainer.appendChild(stickerImg)
+      const stickerImg = document.createElement("img");
+      stickerImg.classList.add("profilestats-cs2locker_sticker_image");
+      stickerImg.src = sticker.imageUrl;
+      stickerContainer.appendChild(stickerImg);
 
-      stickers.appendChild(stickerContainer)
-    })
-    info.appendChild(stickers)
+      stickers.appendChild(stickerContainer);
+    });
+    info.appendChild(stickers);
   }
   if (skin.floatValue != null) {
-    const floatEl = document.createElement("span")
-    floatEl.classList.add("profilestats-cs2locker_skin_fv")
-    floatEl.title = String(skin.floatValue)
-    const truncFloat = skin.floatValue.toFixed(7)
-    floatEl.textContent = truncFloat
-    info.appendChild(floatEl)
+    const floatEl = document.createElement("span");
+    floatEl.classList.add("profilestats-cs2locker_skin_fv");
+    floatEl.title = String(skin.floatValue);
+    const truncFloat = skin.floatValue.toFixed(7);
+    floatEl.textContent = truncFloat;
+    info.appendChild(floatEl);
   }
 
-  const nameEl = document.createElement("a")
-  nameEl.classList.add("profilestats-cs2locker_skin_name")
-  nameEl.href = "https://steamcommunity.com/market/listings/730/" + skin.name
-  nameEl.target = "_blank"
-  nameEl.textContent = skin.name
-  nameEl.title = skin.name
-  nameEl.style.color = skin.rarityColor
-  info.appendChild(nameEl)
+  const nameEl = document.createElement("a");
+  nameEl.classList.add("profilestats-cs2locker_skin_name");
+  nameEl.href = "https://steamcommunity.com/market/listings/730/" + skin.name;
+  nameEl.target = "_blank";
+  nameEl.textContent = skin.name;
+  nameEl.title = skin.name;
+  nameEl.style.color = skin.rarityColor;
+  info.appendChild(nameEl);
 
-  container.appendChild(inner)
-  container.appendChild(info)
+  container.appendChild(inner);
+  container.appendChild(info);
 
-  return container
+  return container;
 }
 
 function createTemplate(logos, uiIcons) {
   const {
     steamLogo,
-    leetifyLogo, leetifyBadge,
+    leetifyLogo,
+    leetifyBadge,
     csstatsLogo,
     faceitLogo,
-    cs2lockerLogo, cs2lockerBadge,
+    cs2lockerLogo,
+    cs2lockerBadge,
     csrepLogo,
     steamidLogo,
     csfloatLogo,
     steamhistoryLogo,
-    steamdbLogo
+    steamdbLogo,
   } = logos;
   const { settings, chevronUp, chevronDown } = uiIcons;
 
@@ -719,153 +779,169 @@ function createTemplate(logos, uiIcons) {
 }
 
 const formatPremierRating = (rating) => {
-  return rating === 0 ? "---" : new Intl.NumberFormat("en-US").format(rating)
-}
+  return rating === 0 ? "---" : new Intl.NumberFormat("en-US").format(rating);
+};
 
 function createRanksSection(sectionLabel, headers, gridClass) {
-  const container = document.createElement("div")
-  container.classList.add("profilestats-ranks-section")
+  const container = document.createElement("div");
+  container.classList.add("profilestats-ranks-section");
 
-  const label = document.createElement("span")
-  label.classList.add("profilestats-ranks-section-label")
-  label.textContent = sectionLabel
-  container.appendChild(label)
+  const label = document.createElement("span");
+  label.classList.add("profilestats-ranks-section-label");
+  label.textContent = sectionLabel;
+  container.appendChild(label);
 
-  const grid = document.createElement("div")
-  grid.classList.add(gridClass)
-  container.appendChild(grid)
+  const grid = document.createElement("div");
+  grid.classList.add(gridClass);
+  container.appendChild(grid);
 
-  headers.forEach(headerText => {
-    const header = document.createElement("span")
-    header.classList.add("profilestats-ranks-header")
-    header.textContent = headerText
-    grid.appendChild(header)
-  })
+  headers.forEach((headerText) => {
+    const header = document.createElement("span");
+    header.classList.add("profilestats-ranks-header");
+    header.textContent = headerText;
+    grid.appendChild(header);
+  });
 
-  return { container, grid }
+  return { container, grid };
 }
 
 function createRankLeft(asset, text1, text2) {
-  const container = document.createElement("div")
-  container.classList.add("profilestats-rank_left")
+  const container = document.createElement("div");
+  container.classList.add("profilestats-rank_left");
 
-  const img = document.createElement("img")
-  img.src = asset
-  container.appendChild(img)
+  const img = document.createElement("img");
+  img.src = asset;
+  container.appendChild(img);
 
-  const texts = document.createElement("div")
-  texts.classList.add("profilestats-rank_left_text")
+  const texts = document.createElement("div");
+  texts.classList.add("profilestats-rank_left_text");
 
-  const topText = document.createElement("span")
-  topText.classList.add("profilestats-rank_left_top_text")
-  topText.textContent = text1
-  texts.appendChild(topText)
+  const topText = document.createElement("span");
+  topText.classList.add("profilestats-rank_left_top_text");
+  topText.textContent = text1;
+  texts.appendChild(topText);
 
   if (text2) {
-    const bottomText = document.createElement("span")
-    bottomText.classList.add("profilestats-rank_left_bottom_text")
-    bottomText.textContent = text2
-    texts.appendChild(bottomText)
+    const bottomText = document.createElement("span");
+    bottomText.classList.add("profilestats-rank_left_bottom_text");
+    bottomText.textContent = text2;
+    texts.appendChild(bottomText);
   }
 
-  container.appendChild(texts)
+  container.appendChild(texts);
 
-  return container
+  return container;
 }
 
 function createCompRank(mode, rank) {
-  const container = document.createElement("div")
-  container.classList.add("profilestats-rank-icon")
+  const container = document.createElement("div");
+  container.classList.add("profilestats-rank-icon");
 
-  const img = document.createElement("img")
+  const img = document.createElement("img");
   if (mode === "competitive") {
-    img.src = chrome.runtime.getURL(`assets/ranks/competitive/${rank}.svg`)
+    img.src = chrome.runtime.getURL(`assets/ranks/competitive/${rank}.svg`);
   } else if (mode === "wingman") {
-    img.src = chrome.runtime.getURL(`assets/ranks/wingman/${rank}.svg`)
+    img.src = chrome.runtime.getURL(`assets/ranks/wingman/${rank}.svg`);
   }
-  container.appendChild(img)
+  container.appendChild(img);
 
-  return container
+  return container;
 }
 
 function createPremierRating(rating) {
-  const container = document.createElement("div")
-  container.classList.add("profilestats-premier-rating")
+  const container = document.createElement("div");
+  container.classList.add("profilestats-premier-rating");
 
-  const bg = document.createElement("img")
-  bg.src = getPremierBg(rating)
-  container.appendChild(bg)
+  const bg = document.createElement("img");
+  bg.src = getPremierBg(rating);
+  container.appendChild(bg);
 
-  const label = document.createElement("span")
-  label.style.color = getPremierColor(rating)
-  label.textContent = formatPremierRating(rating)
-  container.appendChild(label)
+  const label = document.createElement("span");
+  label.style.color = getPremierColor(rating);
+  label.textContent = formatPremierRating(rating);
+  container.appendChild(label);
 
-  return container
+  return container;
 }
 
 function appendCompRow(grid, rank, showBest = true) {
-  grid.appendChild(createRankLeft(
-    `${API_URL}/assets/map_icons/${rank.map}.svg`,
-    rank.map,
-    `Wins: ${rank.wins}`
-  ))
-  grid.appendChild(createCompRank("competitive", rank.latest_rank))
-  if (showBest) grid.appendChild(createCompRank("competitive", rank.best_rank))
+  grid.appendChild(
+    createRankLeft(
+      `${API_URL}/assets/map_icons/${rank.map}.svg`,
+      rank.map,
+      `Wins: ${rank.wins}`,
+    ),
+  );
+  grid.appendChild(createCompRank("competitive", rank.latest_rank));
+  if (showBest) grid.appendChild(createCompRank("competitive", rank.best_rank));
 }
 
 function appendPremierRow(grid, rating) {
-  grid.appendChild(createRankLeft(
-    getPremierCoin(rating.best_rating, rating.season, rating.wins),
-    `Season ${rating.season}`,
-    `Wins: ${rating.wins}`
-  ))
-  grid.appendChild(createPremierRating(rating.latest_rating))
-  grid.appendChild(createPremierRating(rating.best_rating))
+  grid.appendChild(
+    createRankLeft(
+      getPremierCoin(rating.best_rating, rating.season, rating.wins),
+      `Season ${rating.season}`,
+      `Wins: ${rating.wins}`,
+    ),
+  );
+  grid.appendChild(createPremierRating(rating.latest_rating));
+  grid.appendChild(createPremierRating(rating.best_rating));
 }
 
 function appendWingmanRow(grid, wingman, showBest = true) {
-  grid.appendChild(createRankLeft(
-    chrome.runtime.getURL("assets/modes/wingman.svg"),
-    "Wingman",
-    showBest ? `Wins: ${wingman.wins}` : null
-  ))
-  grid.appendChild(createCompRank("wingman", wingman.latest_rank))
-  if (showBest) grid.appendChild(createCompRank("wingman", wingman.best_rank))
+  grid.appendChild(
+    createRankLeft(
+      chrome.runtime.getURL("assets/modes/wingman.svg"),
+      "Wingman",
+      showBest ? `Wins: ${wingman.wins}` : null,
+    ),
+  );
+  grid.appendChild(createCompRank("wingman", wingman.latest_rank));
+  if (showBest) grid.appendChild(createCompRank("wingman", wingman.best_rank));
 }
 
 function fillLinks(clone, steamId64) {
-  clone.querySelector("#profilestats-links_csrep").href = `https://csteamcommunity.com/profiles/${steamId64}`
-  clone.querySelector("#profilestats-links_steamid").href = `https://steamid.io/lookup/${steamId64}`
-  clone.querySelector("#profilestats-links_steamhistory").href = `https://steamhistory.net/id/${steamId64}`
-  clone.querySelector("#profilestats-links_steamdb").href = `https://steamdb.info/calculator/${steamId64}`
-  clone.querySelector("#profilestats-links_csfloat").href = `https://csfloat.com/stall/${steamId64}`
+  clone.querySelector("#profilestats-links_csrep").href =
+    `https://csteamcommunity.com/profiles/${steamId64}`;
+  clone.querySelector("#profilestats-links_steamid").href =
+    `https://steamid.io/lookup/${steamId64}`;
+  clone.querySelector("#profilestats-links_steamhistory").href =
+    `https://steamhistory.net/id/${steamId64}`;
+  clone.querySelector("#profilestats-links_steamdb").href =
+    `https://steamdb.info/calculator/${steamId64}`;
+  clone.querySelector("#profilestats-links_csfloat").href =
+    `https://csfloat.com/stall/${steamId64}`;
 
-  clone.querySelector("#profilestats-steam_category_logo").href = `https://steamcommunity.com/profiles/${steamId64}`;
-  clone.querySelector("#profilestats-leetify_category_logo").href = `https://leetify.com/app/profile/${steamId64}`;
-  clone.querySelector("#profilestats-csstats_category_logo").href = `https://csstats.gg/player/${steamId64}`;
-  clone.querySelector("#profilestats-cs2locker_category_logo").href = `https://cs2locker.com/inventory-value?steamId=${steamId64}&utm_source=cs2-profile-stats`;
+  clone.querySelector("#profilestats-steam_category_logo").href =
+    `https://steamcommunity.com/profiles/${steamId64}`;
+  clone.querySelector("#profilestats-leetify_category_logo").href =
+    `https://leetify.com/app/profile/${steamId64}`;
+  clone.querySelector("#profilestats-csstats_category_logo").href =
+    `https://csstats.gg/player/${steamId64}`;
+  clone.querySelector("#profilestats-cs2locker_category_logo").href =
+    `https://cs2locker.com/inventory-value?steamId=${steamId64}&utm_source=cs2-profile-stats`;
 }
 
 function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
   if (!steamData || steamData.error) {
-    clone.querySelector("#profilestats-steam_content").textContent = "Couldn't load Steam data.";
-    clone.querySelector(".profilestats-steam").dataset.failed = "true"
+    clone.querySelector("#profilestats-steam_content").textContent =
+      "Couldn't load Steam data.";
+    clone.querySelector(".profilestats-steam").dataset.failed = "true";
     return;
   }
 
-  clone.querySelector("#profilestats-steam_name").textContent = steamData.name
+  clone.querySelector("#profilestats-steam_name").textContent = steamData.name;
 
-  const steamIdEl = clone.querySelector("#profilestats-steam_steamid64")
+  const steamIdEl = clone.querySelector("#profilestats-steam_steamid64");
   steamIdEl.textContent = `(${steamId64})`;
-  steamIdEl.title = "Click to copy"
+  steamIdEl.title = "Click to copy";
   steamIdEl.addEventListener("click", () => {
     navigator.clipboard.writeText(steamId64);
-    steamIdEl.textContent = "(Copied!)"
+    steamIdEl.textContent = "(Copied!)";
     setTimeout(() => {
       steamIdEl.textContent = `(${steamId64})`;
-    }, 1000)
-  })
+    }, 1000);
+  });
 
   const banEl = clone.querySelector("#profilestats-steam_ban");
   if (steamData.community_banned) {
@@ -874,39 +950,45 @@ function fillSteam(clone, steamData, steamId64, isGamesPrivate) {
     banEl.style.display = "none";
   }
 
-  const registered = steamData.registered
+  const registered = steamData.registered;
   if (registered != null) {
-    clone.querySelector("#profilestats-steam_registered").textContent = `${formatDate(getTimeDiff(registered))} ago`;
+    clone.querySelector("#profilestats-steam_registered").textContent =
+      `${formatDate(getTimeDiff(registered))} ago`;
   } else {
     clone.querySelector("#profilestats-steam_registered").textContent = "-";
   }
 
-
   const playtime = steamData.cs2_playtime;
-  const playtime2Weeks = steamData.cs2_playtime_2weeks
-  const playtimeEl = clone.querySelector("#profilestats-steam_cs2_playtime")
+  const playtime2Weeks = steamData.cs2_playtime_2weeks;
+  const playtimeEl = clone.querySelector("#profilestats-steam_cs2_playtime");
 
   if (playtime != null && playtime > 0) {
     const formattedPlaytime = new Intl.NumberFormat("en-US").format(playtime);
-    const formattedPlaytime2Weeks = new Intl.NumberFormat("en-US").format(playtime2Weeks);
+    const formattedPlaytime2Weeks = new Intl.NumberFormat("en-US").format(
+      playtime2Weeks,
+    );
     playtimeEl.textContent = `${formattedPlaytime}h (${formattedPlaytime2Weeks}h past 2 weeks)`;
   } else {
     playtimeEl.textContent = `${isGamesPrivate || playtime == null ? "Private" : "-"}`;
   }
 
-  clone.querySelector("#profilestats-steam_cs2_friendcode").textContent = `${steamData.cs2_friend_code ?? "-"}`
+  clone.querySelector("#profilestats-steam_cs2_friendcode").textContent =
+    `${steamData.cs2_friend_code ?? "-"}`;
 }
 
 function fillLeetify(clone, leetifyData) {
   if (!leetifyData || leetifyData.error) {
-    const message = leetifyData?.status === 404 ? "Leetify profile not found." : "Couldn't load Leetify data."
+    const message =
+      leetifyData?.status === 404
+        ? "Leetify profile not found."
+        : "Couldn't load Leetify data.";
     clone.querySelector("#profilestats-leetify_content").textContent = message;
     clone.querySelector("#profilestats-leetify_profile").style.display = "none";
-    clone.querySelector(".profilestats-leetify").dataset.failed = "true"
+    clone.querySelector(".profilestats-leetify").dataset.failed = "true";
     return;
   }
 
-  clone.querySelector("#profilestats-leetify_show_button").style.display = ""
+  clone.querySelector("#profilestats-leetify_show_button").style.display = "";
 
   const showBtn = clone.querySelector("#profilestats-leetify_show_button");
   const ranksEl = clone.querySelector("#profilestats-leetify-ranks");
@@ -919,69 +1001,98 @@ function fillLeetify(clone, leetifyData) {
 
   const stats = leetifyData.stats;
 
-  clone.querySelector("#profilestats-leetify_kd_ratio").textContent = `${stats.kd_ratio ?? "-"}`
+  clone.querySelector("#profilestats-leetify_kd_ratio").textContent =
+    `${stats.kd_ratio ?? "-"}`;
 
   const premierRating = stats.premier_rating;
 
-  clone.querySelector("#profilestats-leetify_premier_rating").appendChild(createPremierRating(premierRating ?? 0))
+  clone
+    .querySelector("#profilestats-leetify_premier_rating")
+    .appendChild(createPremierRating(premierRating ?? 0));
 
-  clone.querySelector("#profilestats-leetify_name").textContent = `${leetifyData.name ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_matches").textContent = `${stats.matches ?? "-"}`;
+  clone.querySelector("#profilestats-leetify_name").textContent =
+    `${leetifyData.name ?? "-"}`;
+  clone.querySelector("#profilestats-leetify_matches").textContent =
+    `${stats.matches ?? "-"}`;
 
-  const rating = stats.leetify_rating ?? "-"
-  clone.querySelector("#profilestats-leetify_leetify_rating").textContent = rating
+  const rating = stats.leetify_rating ?? "-";
+  clone.querySelector("#profilestats-leetify_leetify_rating").textContent =
+    rating;
 
-  const firstMatch = stats.first_match
-  const formattedFirstMatch = `${firstMatch != null ? formatDate(getTimeDiff(firstMatch)) : "-"} ago`
-  clone.querySelector("#profilestats-leetify_first_match").textContent = formattedFirstMatch;
+  const firstMatch = stats.first_match;
+  const formattedFirstMatch = `${firstMatch != null ? formatDate(getTimeDiff(firstMatch)) : "-"} ago`;
+  clone.querySelector("#profilestats-leetify_first_match").textContent =
+    formattedFirstMatch;
 
-  const winRate = stats.win_rate
-  clone.querySelector("#profilestats-leetify_win_rate").textContent = winRate != null ? `${winRate}%` : "-";
-  clone.querySelector("#profilestats-leetify_aim_rating").textContent = `${stats.aim_rating ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_positioning").textContent = `${stats.positioning ?? "-"}`;
-  clone.querySelector("#profilestats-leetify_utility").textContent = `${stats.utility ?? "-"}`;
+  const winRate = stats.win_rate;
+  clone.querySelector("#profilestats-leetify_win_rate").textContent =
+    winRate != null ? `${winRate}%` : "-";
+  clone.querySelector("#profilestats-leetify_aim_rating").textContent =
+    `${stats.aim_rating ?? "-"}`;
+  clone.querySelector("#profilestats-leetify_positioning").textContent =
+    `${stats.positioning ?? "-"}`;
+  clone.querySelector("#profilestats-leetify_utility").textContent =
+    `${stats.utility ?? "-"}`;
 
   const clutching = stats.clutching;
-  clone.querySelector("#profilestats-leetify_clutching").textContent = clutching != null ? (clutching > 0 ? `+${clutching}` : clutching) : "-";
+  clone.querySelector("#profilestats-leetify_clutching").textContent =
+    clutching != null ? (clutching > 0 ? `+${clutching}` : clutching) : "-";
 
   const opening = stats.opening;
-  clone.querySelector("#profilestats-leetify_opening").textContent = opening != null ? (opening > 0 ? `+${opening}` : opening) : "-";
+  clone.querySelector("#profilestats-leetify_opening").textContent =
+    opening != null ? (opening > 0 ? `+${opening}` : opening) : "-";
 
   const preaim = stats.preaim_angle;
   const reaction = stats.reaction_time;
-  clone.querySelector("#profilestats-leetify_preaim_angle").textContent = preaim != null ? `${preaim}°` : "-";
-  clone.querySelector("#profilestats-leetify_reaction_time").textContent = reaction != null ? `${reaction}ms` : "-";
+  clone.querySelector("#profilestats-leetify_preaim_angle").textContent =
+    preaim != null ? `${preaim}°` : "-";
+  clone.querySelector("#profilestats-leetify_reaction_time").textContent =
+    reaction != null ? `${reaction}ms` : "-";
 
   const compRanks = stats.competitive_ranks ?? [];
-  const wingmanRank = stats.wingman_rank
+  const wingmanRank = stats.wingman_rank;
 
-  ranksEl.innerHTML = ""
+  ranksEl.innerHTML = "";
 
   if (compRanks.length > 0) {
-    const left = document.createElement("div")
-    left.classList.add("profilestats-ranks-left")
-    const { container, grid } = createRanksSection("Competitive", ["Map", "Rank"], "profilestats-leetify-ranks-competitive")
-    compRanks.forEach(rank => {
-      grid.appendChild(createRankLeft(`${API_URL}/assets/map_icons/${rank.map}.svg`, rank.map, null))
-      grid.appendChild(createCompRank("competitive", rank.rank))
-    })
-    left.appendChild(container)
-    ranksEl.appendChild(left)
+    const left = document.createElement("div");
+    left.classList.add("profilestats-ranks-left");
+    const { container, grid } = createRanksSection(
+      "Competitive",
+      ["Map", "Rank"],
+      "profilestats-leetify-ranks-competitive",
+    );
+    compRanks.forEach((rank) => {
+      grid.appendChild(
+        createRankLeft(
+          `${API_URL}/assets/map_icons/${rank.map}.svg`,
+          rank.map,
+          null,
+        ),
+      );
+      grid.appendChild(createCompRank("competitive", rank.rank));
+    });
+    left.appendChild(container);
+    ranksEl.appendChild(left);
 
     if (wingmanRank != null) {
-      const right = document.createElement("div")
-      right.classList.add("profilestats-ranks-right")
-      const { container, grid } = createRanksSection("Wingman", ["Mode", "Rank"], "profilestats-leetify-wingman_rank")
-      appendWingmanRow(grid, { latest_rank: wingmanRank, wins: null }, false)
-      right.appendChild(container)
-      ranksEl.appendChild(right)
+      const right = document.createElement("div");
+      right.classList.add("profilestats-ranks-right");
+      const { container, grid } = createRanksSection(
+        "Wingman",
+        ["Mode", "Rank"],
+        "profilestats-leetify-wingman_rank",
+      );
+      appendWingmanRow(grid, { latest_rank: wingmanRank, wins: null }, false);
+      right.appendChild(container);
+      ranksEl.appendChild(right);
     }
   }
 }
 
 function fillCSStats(clone, csStatsData) {
   if (!csStatsData || csStatsData.error) {
-    let displayMessage = ""
+    let displayMessage = "";
     if (csStatsData?.error === "not found") {
       displayMessage = "Profile not found.";
     } else if (csStatsData?.error === "private") {
@@ -989,13 +1100,14 @@ function fillCSStats(clone, csStatsData) {
     } else {
       displayMessage = "Couldn't load CSStats data.";
     }
-    clone.querySelector("#profilestats-csstats_content").textContent = displayMessage;
-    clone.querySelector(".profilestats-csstats").dataset.failed = "true"
-    return
+    clone.querySelector("#profilestats-csstats_content").textContent =
+      displayMessage;
+    clone.querySelector(".profilestats-csstats").dataset.failed = "true";
+    return;
   }
 
-  clone.querySelector("#profilestats-csstats_profile").style.display = ""
-  clone.querySelector("#profilestats-csstats_show_button").style.display = ""
+  clone.querySelector("#profilestats-csstats_profile").style.display = "";
+  clone.querySelector("#profilestats-csstats_show_button").style.display = "";
 
   const ranksEl = clone.querySelector("#profilestats-csstats-ranks");
   const showBtn = clone.querySelector("#profilestats-csstats_show_button");
@@ -1008,67 +1120,98 @@ function fillCSStats(clone, csStatsData) {
 
   const stats = csStatsData.stats;
   const latestPremier = stats.premier_ratings?.[0];
-  const currentRating = latestPremier?.latest_rating ?? 0
+  const currentRating = latestPremier?.latest_rating ?? 0;
 
-  clone.querySelector("#profilestats-csstats_premier_rating_current").appendChild(createPremierRating(currentRating))
+  clone
+    .querySelector("#profilestats-csstats_premier_rating_current")
+    .appendChild(createPremierRating(currentRating));
 
-  const bestRating = stats.premier_ratings?.reduce((best, r) => Math.max(best, r.best_rating), 0) ?? 0;
+  const bestRating =
+    stats.premier_ratings?.reduce(
+      (best, r) => Math.max(best, r.best_rating),
+      0,
+    ) ?? 0;
   if (bestRating !== currentRating) {
-    clone.querySelector("#profilestats-csstats_premier_rating_best").appendChild(createPremierRating(bestRating))
+    clone
+      .querySelector("#profilestats-csstats_premier_rating_best")
+      .appendChild(createPremierRating(bestRating));
   } else {
-    clone.querySelector("#profilestats-csstats_premier_indicator").textContent = "(Best)"
-    clone.querySelector("#profilestats-csstart_premier_container_best").style.display = "none";
+    clone.querySelector("#profilestats-csstats_premier_indicator").textContent =
+      "(Best)";
+    clone.querySelector(
+      "#profilestats-csstart_premier_container_best",
+    ).style.display = "none";
   }
 
-  clone.querySelector("#profilestats-csstats_kd_ratio").textContent = stats.kd_ratio ?? "-"
-  clone.querySelector("#profilestats-csstats_hltv").textContent = stats.hltv_rating ?? "-"
-  clone.querySelector("#profilestats-csstats_matches").textContent = stats.matches ?? "-"
+  clone.querySelector("#profilestats-csstats_kd_ratio").textContent =
+    stats.kd_ratio ?? "-";
+  clone.querySelector("#profilestats-csstats_hltv").textContent =
+    stats.hltv_rating ?? "-";
+  clone.querySelector("#profilestats-csstats_matches").textContent =
+    stats.matches ?? "-";
 
-  const winRate = stats.win_rate
-  clone.querySelector("#profilestats-csstats_win_rate").textContent = `${winRate != null ? winRate + "%" : "-"}`
+  const winRate = stats.win_rate;
+  clone.querySelector("#profilestats-csstats_win_rate").textContent =
+    `${winRate != null ? winRate + "%" : "-"}`;
 
-  const hs = stats.hs_percentage
-  clone.querySelector("#profilestats-csstats_hs_percentage").textContent = hs != null ? `${hs}%` : "-"
+  const hs = stats.hs_percentage;
+  clone.querySelector("#profilestats-csstats_hs_percentage").textContent =
+    hs != null ? `${hs}%` : "-";
 
-  clone.querySelector("#profilestats-csstats_adr").textContent = stats.adr ?? "-"
+  clone.querySelector("#profilestats-csstats_adr").textContent =
+    stats.adr ?? "-";
 
-  const clutching = stats.clutch
-  clone.querySelector("#profilestats-csstats_clutching").textContent = `${clutching != null ? clutching + "%" : "-"}`
+  const clutching = stats.clutch;
+  clone.querySelector("#profilestats-csstats_clutching").textContent =
+    `${clutching != null ? clutching + "%" : "-"}`;
 
-  clone.querySelector("#profilestats-csstats_most_played").textContent = stats.most_played_map ?? "-"
+  clone.querySelector("#profilestats-csstats_most_played").textContent =
+    stats.most_played_map ?? "-";
 
   const compRanks = stats.competitive_ranks ?? [];
   const wingman = stats.wingman;
   const premierRatings = stats.premier_ratings ?? [];
 
-  ranksEl.innerHTML = ""
+  ranksEl.innerHTML = "";
 
   if (compRanks.length > 0) {
-    const left = document.createElement("div")
-    left.classList.add("profilestats-ranks-left")
-    const { container, grid } = createRanksSection("Competitive", ["Map", "Current", "Best"], "profilestats-ranks-competitive")
-    compRanks.forEach(rank => appendCompRow(grid, rank))
-    left.appendChild(container)
-    ranksEl.appendChild(left)
+    const left = document.createElement("div");
+    left.classList.add("profilestats-ranks-left");
+    const { container, grid } = createRanksSection(
+      "Competitive",
+      ["Map", "Current", "Best"],
+      "profilestats-ranks-competitive",
+    );
+    compRanks.forEach((rank) => appendCompRow(grid, rank));
+    left.appendChild(container);
+    ranksEl.appendChild(left);
   }
 
-  const right = document.createElement("div")
-  right.classList.add("profilestats-ranks-right")
+  const right = document.createElement("div");
+  right.classList.add("profilestats-ranks-right");
 
   if (premierRatings.length > 0) {
-    const { container, grid } = createRanksSection("Premier", ["Season", "Current", "Best"], "profilestats-ranks-premier")
-    premierRatings.forEach(rating => appendPremierRow(grid, rating))
-    right.appendChild(container)
+    const { container, grid } = createRanksSection(
+      "Premier",
+      ["Season", "Current", "Best"],
+      "profilestats-ranks-premier",
+    );
+    premierRatings.forEach((rating) => appendPremierRow(grid, rating));
+    right.appendChild(container);
   }
 
   if (wingman != null) {
-    const { container, grid } = createRanksSection("Wingman", ["Mode", "Current", "Best"], "profilestats-wingman_rank")
-    appendWingmanRow(grid, wingman)
-    right.appendChild(container)
+    const { container, grid } = createRanksSection(
+      "Wingman",
+      ["Mode", "Current", "Best"],
+      "profilestats-wingman_rank",
+    );
+    appendWingmanRow(grid, wingman);
+    right.appendChild(container);
   }
 
   if (right.hasChildNodes()) {
-    ranksEl.appendChild(right)
+    ranksEl.appendChild(right);
   }
 }
 
@@ -1076,16 +1219,19 @@ function createFaceitLevel(level, ranking) {
   const img = document.createElement("img");
   img.src = getFaceitLevelImage(level, ranking);
   img.title = String(ranking);
-  const color = getFaceitColor(level)
-  img.style.setProperty("filter", `drop-shadow(${color}60 0px 0px 5px)`)
+  const color = getFaceitColor(level);
+  img.style.setProperty("filter", `drop-shadow(${color}60 0px 0px 5px)`);
   return img;
 }
 
 function fillFaceit(clone, faceitData) {
   if (!faceitData || faceitData.error) {
-    const message = faceitData?.status === 404 ? "Faceit profile not found." : "Couldn't load FaceIt data.";
+    const message =
+      faceitData?.status === 404
+        ? "Faceit profile not found."
+        : "Couldn't load FaceIt data.";
     clone.querySelector("#profilestats-faceit_content").textContent = message;
-    clone.querySelector(".profilestats-faceit").dataset.failed = "true"
+    clone.querySelector(".profilestats-faceit").dataset.failed = "true";
     return;
   }
 
@@ -1098,63 +1244,85 @@ function fillFaceit(clone, faceitData) {
   const ranking = faceitData.ranking;
 
   const nickname = faceitData.nickname;
-  clone.querySelector("#profilestats-faceit_category_logo").href = `https://www.faceit.com/en/players/${nickname ?? ""}`;
-  const levelEl = clone.querySelector("#profilestats-faceit_level")
-  levelEl.innerHTML = ""
-  levelEl.appendChild(createFaceitLevel(level, ranking))
-  clone.querySelector("#profilestats-faceit_nickname").textContent = nickname ?? "-";
+  clone.querySelector("#profilestats-faceit_category_logo").href =
+    `https://www.faceit.com/en/players/${nickname ?? ""}`;
+  const levelEl = clone.querySelector("#profilestats-faceit_level");
+  levelEl.innerHTML = "";
+  levelEl.appendChild(createFaceitLevel(level, ranking));
+  clone.querySelector("#profilestats-faceit_nickname").textContent =
+    nickname ?? "-";
 
   const country = faceitData.country;
-  clone.querySelector("#profilestats-faceit_flag").src = country ? `https://flagsapi.com/${country.toUpperCase()}/flat/24.png` : "";
+  clone.querySelector("#profilestats-faceit_flag").src = country
+    ? `https://flagsapi.com/${country.toUpperCase()}/flat/24.png`
+    : "";
 
-  const membership = faceitData.membership
-  const formattedMembership = membership != null ? membership.charAt(0).toUpperCase() + membership.slice(1) : "-"
-  clone.querySelector("#profilestats-faceit_membership").textContent = formattedMembership
+  const membership = faceitData.membership;
+  const formattedMembership =
+    membership != null
+      ? membership.charAt(0).toUpperCase() + membership.slice(1)
+      : "-";
+  clone.querySelector("#profilestats-faceit_membership").textContent =
+    formattedMembership;
 
   const banEl = clone.querySelector("#profilestats-faceit_ban");
-  const banEnds = faceitData.ban_ends != null ? `(${formatDate(getTimeDiff(faceitData.ban_ends, "until"))} left)` : ""
+  const banEnds =
+    faceitData.ban_ends != null
+      ? `(${formatDate(getTimeDiff(faceitData.ban_ends, "until"))} left)`
+      : "";
   if (faceitData.banned) {
     banEl.style.display = "";
-    clone.querySelector("#profilestats-faceit_ban_reason").textContent = `Banned for ${faceitData.ban_reason?.toLowerCase() ?? "unknown"} ${banEnds}`;
-    clone.querySelector("#profilestats-faceit_ban_reason").style.color = faceitData.ban_ends === null ? "red" : "orange"
+    clone.querySelector("#profilestats-faceit_ban_reason").textContent =
+      `Banned for ${faceitData.ban_reason?.toLowerCase() ?? "unknown"} ${banEnds}`;
+    clone.querySelector("#profilestats-faceit_ban_reason").style.color =
+      faceitData.ban_ends === null ? "red" : "orange";
   } else {
     banEl.style.display = "none";
   }
 
   const registered = faceitData.registered;
   if (registered != null) {
-    clone.querySelector("#profilestats-faceit_registered").textContent = `(${formatDate(getTimeDiff(registered))})`;
+    clone.querySelector("#profilestats-faceit_registered").textContent =
+      `(${formatDate(getTimeDiff(registered))})`;
   } else {
     clone.querySelector("#profilestats-faceit_registered").textContent = "-";
   }
 
-  const eloEl = clone.querySelector("#profilestats-faceit_elo")
+  const eloEl = clone.querySelector("#profilestats-faceit_elo");
   eloEl.textContent = faceitData.elo ?? "-";
-  eloEl.style.color = getFaceitColor(level)
+  eloEl.style.color = getFaceitColor(level);
 
-  clone.querySelector("#profilestats-faceit_matches").textContent = stats.matches ?? "-";
-  clone.querySelector("#profilestats-faceit_kd_ratio").textContent = stats.kd_ratio ?? "-";
+  clone.querySelector("#profilestats-faceit_matches").textContent =
+    stats.matches ?? "-";
+  clone.querySelector("#profilestats-faceit_kd_ratio").textContent =
+    stats.kd_ratio ?? "-";
 
   const hs = stats.hs_percentage;
-  clone.querySelector("#profilestats-faceit_hs_percentage").textContent = hs != null ? `${hs}%` : "-";
+  clone.querySelector("#profilestats-faceit_hs_percentage").textContent =
+    hs != null ? `${hs}%` : "-";
 
   const winRate = stats.win_rate;
-  clone.querySelector("#profilestats-faceit_win_rate").textContent = winRate != null ? `${winRate}%` : "-";
+  clone.querySelector("#profilestats-faceit_win_rate").textContent =
+    winRate != null ? `${winRate}%` : "-";
 
-  const avgKills = stats.avg_kills ?? "-"
-  const avgDeaths = stats.avg_deaths ?? "-"
-  const avgAssists = stats.avg_assists ?? "-"
-  clone.querySelector("#profilestats-faceit_avg_kda").textContent = `${avgKills}/${avgDeaths}/${avgAssists}`;
+  const avgKills = stats.avg_kills ?? "-";
+  const avgDeaths = stats.avg_deaths ?? "-";
+  const avgAssists = stats.avg_assists ?? "-";
+  clone.querySelector("#profilestats-faceit_avg_kda").textContent =
+    `${avgKills}/${avgDeaths}/${avgAssists}`;
 
   const lastMatch = faceitData.last_match;
-  const formattedLastMatch = lastMatch != null ? formatLastMatchDate(lastMatch) : "-"
-  clone.querySelector("#profilestats-faceit_last_match").textContent = formattedLastMatch
+  const formattedLastMatch =
+    lastMatch != null ? formatLastMatchDate(lastMatch) : "-";
+  clone.querySelector("#profilestats-faceit_last_match").textContent =
+    formattedLastMatch;
 
-
-  const recentContainer = clone.querySelector("#profilestats-faceit_recent_results");
+  const recentContainer = clone.querySelector(
+    "#profilestats-faceit_recent_results",
+  );
   const recentResults = stats.recent_results?.slice(-stats.matches);
   if (recentResults?.length > 0) {
-    recentResults.forEach(result => {
+    recentResults.forEach((result) => {
       const span = document.createElement("span");
       span.textContent = result;
       span.style.color = result === "W" ? "#86fc8c" : "#ff879b";
@@ -1167,24 +1335,31 @@ function fillFaceit(clone, faceitData) {
 
 function fillCS2Locker(clone, cs2lockerData) {
   if (!cs2lockerData || cs2lockerData.error) {
-    const message = cs2lockerData?.status === 403 ? "Inventory is private or profile not found." : "Couldn't load CS2Locker data.";
-    clone.querySelector("#profilestats-cs2locker_content").textContent = message;
-    clone.querySelector("#profilestats-cs2locker_profile").style.display = "none"
-    clone.querySelector(".profilestats-cs2locker").dataset.failed = "true"
+    const message =
+      cs2lockerData?.status === 403
+        ? "Inventory is private or profile not found."
+        : "Couldn't load CS2Locker data.";
+    clone.querySelector("#profilestats-cs2locker_content").textContent =
+      message;
+    clone.querySelector("#profilestats-cs2locker_profile").style.display =
+      "none";
+    clone.querySelector(".profilestats-cs2locker").dataset.failed = "true";
     return;
   }
 
   if (cs2lockerData.top5Items.length === 0) {
-    clone.querySelector("#profilestats-cs2locker_value").textContent = "Inventory is empty"
-    return
+    clone.querySelector("#profilestats-cs2locker_value").textContent =
+      "Inventory is empty";
+    return;
   }
 
-  clone.querySelector("#profilestats-cs2locker_show_button").style.display = ""
+  clone.querySelector("#profilestats-cs2locker_show_button").style.display = "";
 
-  const currency = cs2lockerData.currency ?? ""
-  const inventoryValue = cs2lockerData.estimatedValue ?? "-"
+  const currency = cs2lockerData.currency ?? "";
+  const inventoryValue = cs2lockerData.estimatedValue ?? "-";
 
-  clone.querySelector("#profilestats-cs2locker_value_number").textContent = `~${inventoryValue}${currency}`
+  clone.querySelector("#profilestats-cs2locker_value_number").textContent =
+    `~${inventoryValue}${currency}`;
 
   const detailsEl = clone.querySelector("#profilestats-cs2locker_details");
 
@@ -1198,7 +1373,9 @@ function fillCS2Locker(clone, cs2lockerData) {
 
   const top5 = cs2lockerData.top5Items ?? [];
 
-  top5.forEach(skin => detailsEl.appendChild(createLockerSkin(skin, currency)))
+  top5.forEach((skin) =>
+    detailsEl.appendChild(createLockerSkin(skin, currency)),
+  );
 }
 
 function createStyles() {
@@ -1344,7 +1521,9 @@ async function setupSettings(el, fetchers) {
 
   if (isFirstSetup) {
     settingsEl.style.display = "";
-    el.querySelector("#profilestats-settings_heading_first_setup").style.display = "";
+    el.querySelector(
+      "#profilestats-settings_heading_first_setup",
+    ).style.display = "";
   }
 
   const saveBtn = el.querySelector("#profilestats-settings_save_button");
@@ -1359,30 +1538,42 @@ async function setupSettings(el, fetchers) {
     chrome.storage.local.set({ "profilestats:settings": settings });
     settingsEl.style.display = "none";
     saveBtn.style.display = "none";
-    el.querySelector("#profilestats-settings_heading_first_setup").style.display = "none";
+    el.querySelector(
+      "#profilestats-settings_heading_first_setup",
+    ).style.display = "none";
   });
 
-  const hideFailedCb = el.querySelector("#profilestats-settings_checkbox_hide_failed");
+  const hideFailedCb = el.querySelector(
+    "#profilestats-settings_checkbox_hide_failed",
+  );
   hideFailedCb.checked = settings.hideFailed;
   el.classList.toggle("profilestats-hide-failed", settings.hideFailed);
 
   hideFailedCb.addEventListener("change", () => {
     settings.hideFailed = hideFailedCb.checked;
     el.classList.toggle("profilestats-hide-failed", hideFailedCb.checked);
-    chrome.storage.local.set({ "profilestats:settings": settings })
+    chrome.storage.local.set({ "profilestats:settings": settings });
   });
 
-  el.querySelector("#profilestats-button-screenshot").addEventListener("click", () => {
-    el.classList.toggle("profilestats-screenshot");
-  });
+  el.querySelector("#profilestats-button-screenshot").addEventListener(
+    "click",
+    () => {
+      el.classList.toggle("profilestats-screenshot");
+    },
+  );
 
-  el.querySelector("#profilestats-button-edit").addEventListener("click", () => {
-    el.classList.toggle("profilestats-edit");
-  });
+  el.querySelector("#profilestats-button-edit").addEventListener(
+    "click",
+    () => {
+      el.classList.toggle("profilestats-edit");
+    },
+  );
 
   const block = el.querySelector(".profile_customization_block");
   const collapseBtn = el.querySelector(".profilestats-collapse_button");
-  const collapseCb = el.querySelector("#profilestats-settings_checkbox_collapsed");
+  const collapseCb = el.querySelector(
+    "#profilestats-settings_checkbox_collapsed",
+  );
 
   collapseCb.checked = settings.startCollapsed;
 
@@ -1393,7 +1584,7 @@ async function setupSettings(el, fetchers) {
 
   collapseCb.addEventListener("change", () => {
     settings.startCollapsed = collapseCb.checked;
-    chrome.storage.local.set({ "profilestats:settings": settings })
+    chrome.storage.local.set({ "profilestats:settings": settings });
   });
 
   collapseBtn.addEventListener("click", () => {
@@ -1409,15 +1600,35 @@ async function setupSettings(el, fetchers) {
   compactCb.addEventListener("change", () => {
     settings.compactMode = compactCb.checked;
     el.classList.toggle("profilestats-compact", compactCb.checked);
-    chrome.storage.local.set({ "profilestats:settings": settings })
+    chrome.storage.local.set({ "profilestats:settings": settings });
   });
 
   const visibilityItems = [
-    { id: "profilestats-settings_checkbox_steam",     key: "showSteam",     element: ".profilestats-steam" },
-    { id: "profilestats-settings_checkbox_leetify",   key: "showLeetify",   element: ".profilestats-leetify" },
-    { id: "profilestats-settings_checkbox_csstats",   key: "showCSStats",   element: ".profilestats-csstats" },
-    { id: "profilestats-settings_checkbox_faceit",    key: "showFaceit",    element: ".profilestats-faceit" },
-    { id: "profilestats-settings_checkbox_cs2locker", key: "showCS2Locker", element: ".profilestats-cs2locker" },
+    {
+      id: "profilestats-settings_checkbox_steam",
+      key: "showSteam",
+      element: ".profilestats-steam",
+    },
+    {
+      id: "profilestats-settings_checkbox_leetify",
+      key: "showLeetify",
+      element: ".profilestats-leetify",
+    },
+    {
+      id: "profilestats-settings_checkbox_csstats",
+      key: "showCSStats",
+      element: ".profilestats-csstats",
+    },
+    {
+      id: "profilestats-settings_checkbox_faceit",
+      key: "showFaceit",
+      element: ".profilestats-faceit",
+    },
+    {
+      id: "profilestats-settings_checkbox_cs2locker",
+      key: "showCS2Locker",
+      element: ".profilestats-cs2locker",
+    },
   ];
 
   visibilityItems.forEach(({ id, key, element }) => {
@@ -1435,7 +1646,7 @@ async function setupSettings(el, fetchers) {
       settings[key] = checkbox.checked;
       section.style.display = checkbox.checked ? "" : "none";
       if (checkbox.checked) fetchers[key]?.();
-      chrome.storage.local.set({ "profilestats:settings": settings })
+      chrome.storage.local.set({ "profilestats:settings": settings });
     });
   });
 }
@@ -1446,7 +1657,7 @@ async function setupUpDown(el) {
   const saved = await chrome.storage.local.get("profilestats:order");
   const order = saved["profilestats:order"];
   if (order?.length) {
-    order.forEach(sectionClass => {
+    order.forEach((sectionClass) => {
       if (sectionClass === "profilestats-settings") return;
       const section = block.querySelector(`.${sectionClass}`);
       if (section) block.appendChild(section);
@@ -1454,33 +1665,46 @@ async function setupUpDown(el) {
   }
 
   const getSectionId = (section) =>
-    [...section.classList].find(c => c.startsWith("profilestats-") && c !== "showcase_content_bg");
+    [...section.classList].find(
+      (c) => c.startsWith("profilestats-") && c !== "showcase_content_bg",
+    );
 
   const saveOrder = async () => {
-    const sections = [...block.querySelectorAll(".showcase_content_bg")]
-      .filter(s => !s.classList.contains("profilestats-settings"));
+    const sections = [...block.querySelectorAll(".showcase_content_bg")].filter(
+      (s) => !s.classList.contains("profilestats-settings"),
+    );
     const order = sections.map(getSectionId);
     await chrome.storage.local.set({ "profilestats:order": order });
   };
 
-  block.querySelectorAll(".profilestats-updown").forEach(updown => {
+  block.querySelectorAll(".profilestats-updown").forEach((updown) => {
     const section = updown.closest(".showcase_content_bg");
 
-    updown.querySelector(".profilestats-updown_button_up").addEventListener("click", () => {
-      const prevSibling = section.previousElementSibling;
-      if (prevSibling && !prevSibling.classList.contains("profilestats-settings")) {
-        block.insertBefore(section, prevSibling);
-        saveOrder();
-      }
-    });
+    updown
+      .querySelector(".profilestats-updown_button_up")
+      .addEventListener("click", () => {
+        const prevSibling = section.previousElementSibling;
+        if (
+          prevSibling &&
+          !prevSibling.classList.contains("profilestats-settings")
+        ) {
+          block.insertBefore(section, prevSibling);
+          saveOrder();
+        }
+      });
 
-    updown.querySelector(".profilestats-updown_button_down").addEventListener("click", () => {
-      const nextSibling = section.nextElementSibling;
-      if (nextSibling && !nextSibling.classList.contains("profilestats-settings")) {
-        block.insertBefore(nextSibling, section);
-        saveOrder();
-      }
-    });
+    updown
+      .querySelector(".profilestats-updown_button_down")
+      .addEventListener("click", () => {
+        const nextSibling = section.nextElementSibling;
+        if (
+          nextSibling &&
+          !nextSibling.classList.contains("profilestats-settings")
+        ) {
+          block.insertBefore(nextSibling, section);
+          saveOrder();
+        }
+      });
   });
 }
 
@@ -1507,7 +1731,9 @@ async function renderStats(el, head) {
     csrepLogo: chrome.runtime.getURL("assets/logos/csrep_logo.png"),
     steamidLogo: chrome.runtime.getURL("assets/logos/steamid_logo.png"),
     csfloatLogo: chrome.runtime.getURL("assets/logos/csfloat_logo.png"),
-    steamhistoryLogo: chrome.runtime.getURL("assets/logos/steamhistory_logo.png"),
+    steamhistoryLogo: chrome.runtime.getURL(
+      "assets/logos/steamhistory_logo.png",
+    ),
     steamdbLogo: chrome.runtime.getURL("assets/logos/steamdb_logo.png"),
   };
 
@@ -1517,14 +1743,25 @@ async function renderStats(el, head) {
     chevronDown: chrome.runtime.getURL("assets/ui/chevron_down.svg"),
   };
 
-  const isGamesPrivate = document.querySelector('.profile_recentgame_header') === null;
+  const isGamesPrivate =
+    document.querySelector(".profile_recentgame_header") === null;
   const clone = createTemplate(logos, uiIcons);
 
-  const steamBackup = clone.querySelector("#profilestats-steam_content").innerHTML;
-  const leetifyBackup = clone.querySelector("#profilestats-leetify_content").innerHTML;
-  const csStatsBackup = clone.querySelector("#profilestats-csstats_content").innerHTML;
-  const faceitBackup = clone.querySelector("#profilestats-faceit_content").innerHTML;
-  const cs2lockerBackup = clone.querySelector("#profilestats-cs2locker_content").innerHTML;
+  const steamBackup = clone.querySelector(
+    "#profilestats-steam_content",
+  ).innerHTML;
+  const leetifyBackup = clone.querySelector(
+    "#profilestats-leetify_content",
+  ).innerHTML;
+  const csStatsBackup = clone.querySelector(
+    "#profilestats-csstats_content",
+  ).innerHTML;
+  const faceitBackup = clone.querySelector(
+    "#profilestats-faceit_content",
+  ).innerHTML;
+  const cs2lockerBackup = clone.querySelector(
+    "#profilestats-cs2locker_content",
+  ).innerHTML;
 
   const loadingAnimation = `
     <div id="profilestats-loading" style="display: flex; align-items: center; margin-top: 8px;">
@@ -1534,7 +1771,7 @@ async function renderStats(el, head) {
         </path>
       </svg>
     </div>
-  `
+  `;
 
   const styleEl = document.createElement("style");
   styleEl.textContent = createStyles();
@@ -1544,17 +1781,17 @@ async function renderStats(el, head) {
   setupUpDown(el);
 
   const fetcher = (fetchFn, fillFn, contentEl, backup) => {
-    let loaded = false
+    let loaded = false;
     return () => {
       if (loaded) return;
       loaded = true;
       el.querySelector(contentEl).innerHTML = loadingAnimation;
-      fetchFn(steamId64).then(data => {
+      fetchFn(steamId64).then((data) => {
         el.querySelector(contentEl).innerHTML = backup;
-        fillFn(el, data)
-      })
-    }
-  }
+        fillFn(el, data);
+      });
+    };
+  };
 
   const fetchers = {
     showSteam: fetcher(
@@ -1590,52 +1827,59 @@ async function renderStats(el, head) {
         const content = el.querySelector("#profilestats-faceit_content");
         const limitEl = el.querySelector("#profilestats-faceit_limit");
         const tabs = [...el.querySelectorAll(".profilestats-tab")];
-        const games = tabs.map(btn => btn.dataset.game);
+        const games = tabs.map((btn) => btn.dataset.game);
         let currentGame = games[0];
         let currentData = {};
 
-        tabs.forEach(btn => {
+        tabs.forEach((btn) => {
           btn.addEventListener("click", () => {
             currentGame = btn.dataset.game;
-            tabs.forEach(t => t.classList.remove("active-tab"));
+            tabs.forEach((t) => t.classList.remove("active-tab"));
             btn.classList.add("active-tab");
-            el.querySelector("#profilestats-faceit_recent_results").innerHTML = "";
+            el.querySelector("#profilestats-faceit_recent_results").innerHTML =
+              "";
             fillFaceit(el, currentData[currentGame]);
           });
         });
 
         const load = (limit, isInitial = false) => {
           content.innerHTML = loadingAnimation;
-          Promise.all(games.map(game => fetchFaceitProfile(steamId64, game, limit)))
-            .then(results => {
-              currentData = Object.fromEntries(games.map((game, i) => [game, results[i]]));
+          Promise.all(
+            games.map((game) => fetchFaceitProfile(steamId64, game, limit)),
+          ).then((results) => {
+            currentData = Object.fromEntries(
+              games.map((game, i) => [game, results[i]]),
+            );
 
-              if (isInitial) {
-                currentGame = games.find(g => currentData[g] && !currentData[g].error) ?? games[0];
-              }
+            if (isInitial) {
+              currentGame =
+                games.find((g) => currentData[g] && !currentData[g].error) ??
+                games[0];
+            }
 
-              content.innerHTML = faceitBackup;
-              fillFaceit(el, currentData[currentGame]);
+            content.innerHTML = faceitBackup;
+            fillFaceit(el, currentData[currentGame]);
 
-              tabs.forEach(btn => {
-                const game = btn.dataset.game;
-                btn.style.display = (!currentData[game] || currentData[game].error) ? "none" : "";
-                btn.classList.toggle("active-tab", game === currentGame);
-              });
+            tabs.forEach((btn) => {
+              const game = btn.dataset.game;
+              btn.style.display =
+                !currentData[game] || currentData[game].error ? "none" : "";
+              btn.classList.toggle("active-tab", game === currentGame);
             });
+          });
         };
 
         limitEl.addEventListener("change", () => load(parseInt(limitEl.value)));
         load(parseInt(limitEl.value), true);
       };
     })(),
-  }
+  };
 
-  fillLinks(el, steamId64)
+  fillLinks(el, steamId64);
   await setupSettings(el, fetchers);
 }
 
 renderStats(
   document.querySelector(".profile_leftcol"),
-  document.querySelector("head")
+  document.querySelector("head"),
 );
