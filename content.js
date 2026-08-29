@@ -1011,8 +1011,6 @@ function fillLeetify(clone, leetifyData) {
     return;
   }
 
-  clone.querySelector("#profilestats-leetify_show_button").style.display = "";
-
   const showBtn = clone.querySelector("#profilestats-leetify_show_button");
   const ranksEl = clone.querySelector("#profilestats-leetify-ranks");
 
@@ -1112,6 +1110,7 @@ function fillLeetify(clone, leetifyData) {
       ranksEl.appendChild(right);
     }
   }
+  showBtn.style.display = ranksEl.hasChildNodes() ? "" : "none";
 }
 
 function fillCSStats(clone, csStatsData) {
@@ -1131,7 +1130,6 @@ function fillCSStats(clone, csStatsData) {
   }
 
   clone.querySelector("#profilestats-csstats_profile").style.display = "";
-  clone.querySelector("#profilestats-csstats_show_button").style.display = "";
 
   const ranksEl = clone.querySelector("#profilestats-csstats-ranks");
   const showBtn = clone.querySelector("#profilestats-csstats_show_button");
@@ -1241,6 +1239,8 @@ function fillCSStats(clone, csStatsData) {
   if (right.hasChildNodes()) {
     ranksEl.appendChild(right);
   }
+
+  showBtn.style.display = ranksEl.hasChildNodes() ? "" : "none";
 }
 
 function createFaceitLevel(level, ranking) {
