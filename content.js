@@ -66,9 +66,14 @@ async function fetchCSStatsProfile(steamId64) {
     const hltvRating = parseFloat(
       stats.querySelector("#rating span")?.textContent?.trim(),
     );
-    const mostPlayedMap = stats
-      .querySelector(".maps-body .row")
-      ?.getAttribute("data-name");
+
+    // seems to be inconsistent after the redesign
+    const mostPlayedMap =
+      stats.querySelector(".maps-body .row")?.getAttribute("data-name") ??
+      stats
+        .querySelector("#player-maps canvas")
+        ?.id.replace("-wr-chart-canvas", "");
+
     const statPanels = stats.querySelectorAll(".stat-panel");
 
     let winRate = null;
@@ -105,7 +110,9 @@ async function fetchCSStatsProfile(steamId64) {
     // ranks
 
     const getRating = (el) => {
-      const span = el?.querySelector(".cs2rating span");
+      if (!el) return null;
+      if (el.querySelector(".dash")) return 0;
+      const span = el.querySelector(".cs2rating span");
       if (!span) return null;
       const main = span.childNodes[0].textContent.trim();
       if (main === "---") return 0;
