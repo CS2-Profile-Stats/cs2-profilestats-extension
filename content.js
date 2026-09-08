@@ -1467,7 +1467,7 @@ function fillCSRep(clone, csRepData) {
 function createFaceitLevel(level, ranking) {
   const img = document.createElement("img");
   img.src = getFaceitLevelImage(level, ranking);
-  img.title = String(ranking);
+  img.title = ranking !== 0 ? String(ranking) : "?";
   const color = getFaceitColor(level);
   img.style.setProperty("filter", `drop-shadow(${color}60 0px 0px 5px)`);
   return img;
@@ -1542,7 +1542,11 @@ function fillFaceit(clone, faceitData) {
     clone.querySelector("#profilestats-faceit_registered").textContent = "-";
   }
 
-  setStat(clone, "profilestats-faceit_elo", faceitData.elo);
+  if (faceitData.elo === 0) {
+    clone.querySelector("#profilestats-faceit_elo").textContent = "Unranked";
+  } else {
+    setStat(clone, "profilestats-faceit_elo", faceitData.elo);
+  }
   clone.querySelector("#profilestats-faceit_elo").style.color =
     getFaceitColor(level);
 
