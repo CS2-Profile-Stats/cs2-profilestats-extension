@@ -473,6 +473,7 @@ function createTemplate(logos, uiIcons) {
     cs2lockerBadge,
     csrepLogo,
     steamidLogo,
+    csxpLogo,
     csfloatLogo,
     steamhistoryLogo,
     steamdbLogo,
@@ -487,6 +488,7 @@ function createTemplate(logos, uiIcons) {
         CS2 Profile Stats
         <div data-screenshot="hidden" class="profilestats-links">
           <a id="profilestats-links_steamid" target="_blank" title="SteamID.io"><img src="${steamidLogo}"/></a>
+          <a id="profilestats-links_csxp" target="_blank" title="csxp.gg"><img src="${csxpLogo}"/></a>
           <a id="profilestats-links_steamhistory" target="_blank" title="SteamHistory"><img src="${steamhistoryLogo}"/></a>
           <a id="profilestats-links_steamdb" target="_blank" title="SteamDB"><img src="${steamdbLogo}"/></a>
           <a id="profilestats-links_csfloat" target="_blank" title="CSFloat Stall"><img src="${csfloatLogo}"/></a>
@@ -1001,6 +1003,8 @@ function fillLinks(clone, steamId64) {
     `https://steamid.io/lookup/${steamId64}`;
   clone.querySelector("#profilestats-links_steamhistory").href =
     `https://steamhistory.net/id/${steamId64}`;
+  clone.querySelector("#profilestats-links_csxp").href =
+    `https://csxp.gg/players/${steamId64}`;
   clone.querySelector("#profilestats-links_steamdb").href =
     `https://steamdb.info/calculator/${steamId64}`;
   clone.querySelector("#profilestats-links_csfloat").href =
@@ -2045,6 +2049,7 @@ async function renderStats(el, head) {
     cs2lockerBadge: chrome.runtime.getURL("assets/logos/cs2locker_badge.png"),
     csrepLogo: chrome.runtime.getURL("assets/logos/csrep_logo.png"),
     steamidLogo: chrome.runtime.getURL("assets/logos/steamid_logo.png"),
+    csxpLogo: chrome.runtime.getURL("assets/logos/csxp_logo.png"),
     csfloatLogo: chrome.runtime.getURL("assets/logos/csfloat_logo.png"),
     steamhistoryLogo: chrome.runtime.getURL(
       "assets/logos/steamhistory_logo.png",
