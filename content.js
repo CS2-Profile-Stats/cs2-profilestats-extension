@@ -1502,9 +1502,14 @@ function fillFaceit(clone, faceitData) {
     nickname ?? "-";
 
   const country = faceitData.country;
-  clone.querySelector("#profilestats-faceit_flag").src = country
+  const countryName = new Intl.DisplayNames(["en"], { type: "region" }).of(
+    country?.toUpperCase(),
+  );
+  const flagEl = clone.querySelector("#profilestats-faceit_flag");
+  flagEl.src = country
     ? `https://flagsapi.com/${country.toUpperCase()}/flat/24.png`
     : "";
+  flagEl.title = countryName ?? "";
 
   const membership = faceitData.membership;
   const formattedMembership =
