@@ -35,5 +35,6 @@ https://chromewebstore.google.com/detail/cs2-profile-stats/cdjdnohbfomlobiemccee
 - Leetify statistics.
 - FaceIt statistics.
 - CSStats statistics.
+- CSRep statistics.
 - CS2Locker inventory statistics.
 - Tons of different customization settings
