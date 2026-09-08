@@ -135,6 +135,36 @@ async function fetchCSStatsProfile(steamId64) {
       const title = sec.querySelector(".sec-h .sec-t")?.textContent.trim();
 
       if (title === "Premier") {
+        const pmNow = sec.querySelector(".pm-now");
+        if (pmNow) {
+          const cols = [...pmNow.querySelectorAll(".pm-c")];
+          const winsCol = cols.find(
+            (c) => c.querySelector(".k")?.textContent.trim() === "Wins",
+          );
+          const currentCol = cols.find(
+            (c) => c.querySelector(".k")?.textContent.trim() === "Current",
+          );
+          const bestCol = cols.find(
+            (c) => c.querySelector(".k")?.textContent.trim() === "Best",
+          );
+
+          const seasonText = sec
+            .querySelector(".sec-h .sec-s")
+            ?.textContent.trim();
+          const seasonMatch = seasonText?.match(/S(?:eason)?\s*(\d+)/i);
+
+          if (seasonMatch) {
+            premierRatings.push({
+              season: parseInt(seasonMatch[1]),
+              latest_rating: getRating(currentCol?.querySelector(".v")),
+              best_rating: getRating(bestCol?.querySelector(".v")),
+              wins:
+                parseInt(winsCol?.querySelector(".num")?.textContent.trim()) ||
+                0,
+            });
+          }
+        }
+
         sec.querySelectorAll(".rk-row").forEach((row) => {
           const seasonText = row.querySelector(".rk-l .nm")?.textContent.trim();
           const seasonMatch = seasonText?.match(/S(\d+)/);
