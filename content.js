@@ -1006,7 +1006,7 @@ function fillLinks(clone, steamId64) {
   clone.querySelector("#profilestats-links_csxp").href =
     `https://csxp.gg/players/${steamId64}`;
   clone.querySelector("#profilestats-links_steamdb").href =
-    `https://steamdb.info/calculator/${steamId64}`;
+    `https://steamdb.info/calculator/${steamId64}/`;
   clone.querySelector("#profilestats-links_csfloat").href =
     `https://csfloat.com/stall/${steamId64}`;
 
